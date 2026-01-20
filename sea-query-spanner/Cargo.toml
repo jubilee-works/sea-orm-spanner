@@ -1,0 +1,27 @@
+[package]
+name = "sea-query-spanner"
+description = "Spanner SQL dialect for sea-query"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[features]
+default = []
+with-chrono = ["sea-query/with-chrono", "chrono"]
+with-uuid = ["sea-query/with-uuid", "uuid"]
+with-json = ["sea-query/with-json", "serde_json"]
+with-rust_decimal = ["sea-query/with-rust_decimal", "rust_decimal"]
+
+[dependencies]
+sea-query.workspace = true
+chrono = { workspace = true, optional = true }
+uuid = { workspace = true, optional = true }
+rust_decimal = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+
+[dev-dependencies]
+tokio.workspace = true

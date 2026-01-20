@@ -1,0 +1,14 @@
+[package]
+name = "basic-crud"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+sea-orm-spanner = { path = "../../sea-orm-spanner", features = ["with-chrono", "with-uuid"] }
+sea-orm = { workspace = true, features = ["macros", "with-chrono", "with-uuid", "runtime-tokio-native-tls"] }
+google-cloud-spanner.workspace = true
+google-cloud-googleapis = { version = "0.6.0", features = ["spanner"] }
+tokio.workspace = true
+uuid.workspace = true
+chrono.workspace = true
