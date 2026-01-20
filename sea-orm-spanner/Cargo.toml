@@ -17,7 +17,7 @@ with-json = ["sea-query-spanner/with-json", "sea-orm/with-json", "serde_json"]
 with-rust_decimal = ["sea-query-spanner/with-rust_decimal", "sea-orm/with-rust_decimal", "rust_decimal"]
 
 [dependencies]
-sea-orm.workspace = true
+sea-orm = { workspace = true, features = ["proxy"] }
 sea-query.workspace = true
 sea-query-spanner = { path = "../sea-query-spanner" }
 
@@ -40,3 +40,10 @@ tracing.workspace = true
 
 [dev-dependencies]
 tokio-test.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+chrono.workspace = true
+uuid.workspace = true
+google-cloud-spanner.workspace = true
+google-cloud-googleapis = { version = "0.6.0", features = ["spanner"] }
+# Need macros for entity derives and with-chrono for DateTimeUtc
+sea-orm = { workspace = true, features = ["proxy", "macros", "with-chrono", "with-uuid", "runtime-tokio-native-tls"] }
