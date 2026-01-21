@@ -8,11 +8,13 @@ use sea_orm::{
     ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, ModelTrait, PaginatorTrait,
     QueryFilter, QueryOrder, QuerySelect, Set,
 };
+use serial_test::serial;
 
 mod insert_tests {
     use super::*;
 
     #[tokio::test]
+    #[serial]
     async fn test_insert_single_entity() {
         let db = setup_test_database().await;
 
@@ -34,6 +36,7 @@ mod insert_tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_insert_with_null_fields() {
         
         let db = setup_test_database().await;
@@ -55,6 +58,7 @@ mod insert_tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_insert_multiple_entities() {
         
         let db = setup_test_database().await;
@@ -103,6 +107,7 @@ mod select_tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_find_by_id() {
         
         let db = setup_test_database().await;
@@ -114,6 +119,7 @@ mod select_tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_find_all() {
         
         let db = setup_test_database().await;
@@ -124,6 +130,7 @@ mod select_tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_find_with_filter() {
         
         let db = setup_test_database().await;
@@ -138,6 +145,7 @@ mod select_tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_find_with_order_by() {
         
         let db = setup_test_database().await;
@@ -154,6 +162,7 @@ mod select_tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_find_with_limit() {
         
         let db = setup_test_database().await;
@@ -170,6 +179,7 @@ mod select_tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_find_with_offset() {
         
         let db = setup_test_database().await;
@@ -188,6 +198,7 @@ mod select_tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_find_one() {
         
         let db = setup_test_database().await;
@@ -204,6 +215,7 @@ mod select_tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_count() {
         
         let db = setup_test_database().await;
@@ -221,6 +233,7 @@ mod select_tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_find_with_contains() {
         
         let db = setup_test_database().await;
@@ -236,6 +249,7 @@ mod select_tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_find_with_in_list() {
         
         let db = setup_test_database().await;
@@ -251,6 +265,7 @@ mod select_tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_find_with_is_null() {
         
         let db = setup_test_database().await;
@@ -271,6 +286,7 @@ mod update_tests {
     use super::*;
 
     #[tokio::test]
+    #[serial]
     async fn test_update_single_field() {
         
         let db = setup_test_database().await;
@@ -297,6 +313,7 @@ mod update_tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_update_multiple_fields() {
         
         let db = setup_test_database().await;
@@ -326,6 +343,7 @@ mod update_tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_update_to_null() {
         
         let db = setup_test_database().await;
@@ -355,6 +373,7 @@ mod delete_tests {
     use super::*;
 
     #[tokio::test]
+    #[serial]
     async fn test_delete_single_entity() {
         
         let db = setup_test_database().await;
@@ -378,6 +397,7 @@ mod delete_tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_delete_by_filter() {
         
         let db = setup_test_database().await;
@@ -442,6 +462,7 @@ mod relation_tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_find_related() {
         
         let db = setup_test_database().await;
@@ -458,6 +479,7 @@ mod relation_tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_find_with_related() {
         
         let db = setup_test_database().await;
@@ -478,6 +500,7 @@ mod pagination_tests {
     use super::*;
 
     #[tokio::test]
+    #[serial]
     async fn test_paginator() {
         
         let db = setup_test_database().await;
@@ -558,6 +581,7 @@ mod complex_query_tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_complex_filter() {
         
         let db = setup_test_database().await;
@@ -574,6 +598,7 @@ mod complex_query_tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_or_filter() {
         
         let db = setup_test_database().await;
@@ -595,6 +620,7 @@ mod complex_query_tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_select_only() {
         
         let db = setup_test_database().await;

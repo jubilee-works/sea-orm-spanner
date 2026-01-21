@@ -47,3 +47,4 @@ google-cloud-spanner.workspace = true
 google-cloud-googleapis = { version = "0.6.0", features = ["spanner"] }
 # Need macros for entity derives and with-chrono for DateTimeUtc
 sea-orm = { workspace = true, features = ["proxy", "macros", "with-chrono", "with-uuid", "runtime-tokio-native-tls"] }
+serial_test = "3.3.1"
