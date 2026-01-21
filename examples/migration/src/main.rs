@@ -12,7 +12,7 @@ struct Cli {
         env = "DATABASE_PATH",
         help = "Spanner database path (projects/{project}/instances/{instance}/databases/{database})"
     )]
-    database: String,
+    database: Option<String>,
 
     #[command(subcommand)]
     command: Commands,
@@ -20,6 +20,18 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    #[command(about = "Initialize migration directory")]
+    Init {
+        #[arg(short, long, default_value = "./migration", help = "Migration directory path")]
+        dir: String,
+    },
+
+    #[command(about = "Generate a new migration file")]
+    Generate {
+        #[arg(help = "Name of the migration")]
+        name: String,
+    },
+
     #[command(about = "Apply pending migrations")]
     Up {
         #[arg(short, long, help = "Number of migrations to apply")]
@@ -42,22 +54,63 @@ enum Commands {
     Reset,
 }
 
+fn require_database(database: Option<String>) -> String {
+    database.expect("DATABASE_PATH is required. Use -d or set DATABASE_PATH env var.")
+}
+
 #[tokio::main]
 async fn main() {
     dotenvy::dotenv().ok();
 
     let cli = Cli::parse();
 
-    let result = match cli.command {
-        Commands::Up { num } => Migrator::up(&cli.database, num).await,
-        Commands::Down { num } => Migrator::down(&cli.database, Some(num)).await,
-        Commands::Status => Migrator::status(&cli.database).await,
-        Commands::Fresh => Migrator::fresh(&cli.database).await,
-        Commands::Reset => Migrator::reset(&cli.database).await,
-    };
-
-    if let Err(e) = result {
-        eprintln!("Error: {}", e);
-        std::process::exit(1);
+    match cli.command {
+        Commands::Init { dir } => {
+            if let Err(e) = sea_orm_migration_spanner::run_migrate_init(&dir) {
+                eprintln!("Error: {}", e);
+                std::process::exit(1);
+            }
+        }
+        Commands::Generate { name } => {
+            if let Err(e) = sea_orm_migration_spanner::run_migrate_generate("./src", &name) {
+                eprintln!("Error: {}", e);
+                std::process::exit(1);
+            }
+        }
+        Commands::Up { num } => {
+            let db = require_database(cli.database);
+            if let Err(e) = Migrator::up(&db, num).await {
+                eprintln!("Error: {}", e);
+                std::process::exit(1);
+            }
+        }
+        Commands::Down { num } => {
+            let db = require_database(cli.database);
+            if let Err(e) = Migrator::down(&db, Some(num)).await {
+                eprintln!("Error: {}", e);
+                std::process::exit(1);
+            }
+        }
+        Commands::Status => {
+            let db = require_database(cli.database);
+            if let Err(e) = Migrator::status(&db).await {
+                eprintln!("Error: {}", e);
+                std::process::exit(1);
+            }
+        }
+        Commands::Fresh => {
+            let db = require_database(cli.database);
+            if let Err(e) = Migrator::fresh(&db).await {
+                eprintln!("Error: {}", e);
+                std::process::exit(1);
+            }
+        }
+        Commands::Reset => {
+            let db = require_database(cli.database);
+            if let Err(e) = Migrator::reset(&db).await {
+                eprintln!("Error: {}", e);
+                std::process::exit(1);
+            }
+        }
     }
 }
