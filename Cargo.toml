@@ -5,6 +5,7 @@ members = [
     "sea-orm-spanner",
     "sea-orm-migration-spanner",
     "examples/basic-crud",
+    "examples/migration",
 ]
 
 [workspace.package]
