@@ -26,3 +26,4 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 google-cloud-spanner = "0.12"
 google-cloud-googleapis = { version = "0.6.0", features = ["spanner"] }
 async-trait = "0.1"
+serial_test = "3.3"

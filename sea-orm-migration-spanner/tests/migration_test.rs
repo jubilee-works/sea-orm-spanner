@@ -2,6 +2,7 @@ use sea_orm::DbErr;
 use sea_orm_migration_spanner::{
     SpannerMigrationTrait, SpannerMigratorTrait, SpannerSchemaManager,
 };
+use serial_test::serial;
 
 struct M20220101CreateUsers;
 
@@ -126,6 +127,7 @@ async fn setup_test_database() {
 }
 
 #[tokio::test]
+#[serial]
 async fn test_migration_up_and_down() {
     setup_test_database().await;
 
@@ -151,6 +153,7 @@ async fn test_migration_up_and_down() {
 }
 
 #[tokio::test]
+#[serial]
 async fn test_migration_fresh() {
     setup_test_database().await;
 

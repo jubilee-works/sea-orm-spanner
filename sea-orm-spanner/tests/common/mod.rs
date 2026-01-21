@@ -143,20 +143,24 @@ async fn ensure_tables_exist() {
         .await
         .expect("Failed to create admin client");
 
-    let result = db_client
-        .update_database_ddl(
-            UpdateDatabaseDdlRequest {
-                database: database_path.clone(),
-                statements: ALL_DDL.iter().map(|s| s.to_string()).collect(),
-                operation_id: "".to_string(),
-            },
-            None,
-            None,
-        )
-        .await;
+    // Try to create each table individually, ignoring "already exists" errors
+    for ddl in ALL_DDL {
+        let result = db_client
+            .update_database_ddl(
+                UpdateDatabaseDdlRequest {
+                    database: database_path.clone(),
+                    statements: vec![ddl.to_string()],
+                    operation_id: "".to_string(),
+                },
+                None,
+                None,
+            )
+            .await;
 
-    if let Ok(mut op) = result {
-        let _ = op.wait(None, None).await;
+        if let Ok(mut op) = result {
+            let _ = op.wait(None, None).await;
+        }
+        // Ignore errors (table may already exist)
     }
 }
 

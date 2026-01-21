@@ -235,7 +235,15 @@ pub trait SpannerMigratorTrait: Send {
         info!("Dropping all tables and reapplying migrations");
         println!("Dropping all tables and reapplying migrations");
 
-        Self::reset(database_path).await.ok();
+        let schema_manager = SpannerSchemaManager::new(database_path);
+
+        let migrations = Self::get_migration_files();
+        for migration in migrations.iter().rev() {
+            let _ = migration.migration.down(&schema_manager).await;
+        }
+
+        let _ = schema_manager.drop_table("seaql_migrations").await;
+
         Self::up(database_path, None).await
     }
 
