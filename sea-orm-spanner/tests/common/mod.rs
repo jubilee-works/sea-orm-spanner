@@ -50,8 +50,7 @@ const ALL_TABLES: &[&str] = &["users", "posts", "categories", "products"];
 
 pub async fn setup_test_database() -> DatabaseConnection {
     if std::env::var("SPANNER_EMULATOR_HOST").is_err() {
-        eprintln!("SPANNER_EMULATOR_HOST not set, skipping test");
-        std::process::exit(0);
+        panic!("SPANNER_EMULATOR_HOST not set. Run: export SPANNER_EMULATOR_HOST=localhost:9010");
     }
 
     if !INITIALIZED.load(Ordering::SeqCst) {
