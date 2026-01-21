@@ -169,7 +169,7 @@ mod tests {
             .and_where(Expr::col(Alias::new("active")).eq(true))
             .build(SpannerQueryBuilder);
 
-        assert_eq!(sql, r#"SELECT `name` FROM `users` WHERE `id` = @p1 AND `active` = @p2"#);
+        assert_eq!(sql, r#"SELECT `name` FROM `users` WHERE (`id` = @p1) AND (`active` = @p2)"#);
         assert_eq!(values.0.len(), 2);
     }
 }
