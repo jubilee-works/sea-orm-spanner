@@ -9,50 +9,12 @@ use sea_orm::{
     QueryFilter, QueryOrder, QuerySelect, Set,
 };
 
-fn unique_db_name(prefix: &str) -> String {
-    format!("{}_{}", prefix, Utc::now().timestamp_millis())
-}
-
-const USERS_DDL: &str = "CREATE TABLE users (
-    id STRING(36) NOT NULL,
-    name STRING(255) NOT NULL,
-    email STRING(255) NOT NULL,
-    age INT64,
-    active BOOL NOT NULL,
-    created_at TIMESTAMP NOT NULL,
-) PRIMARY KEY (id)";
-
-const POSTS_DDL: &str = "CREATE TABLE posts (
-    id STRING(36) NOT NULL,
-    user_id STRING(36) NOT NULL,
-    title STRING(255) NOT NULL,
-    content STRING(MAX) NOT NULL,
-    published BOOL NOT NULL,
-    created_at TIMESTAMP NOT NULL,
-) PRIMARY KEY (id)";
-
-const CATEGORIES_DDL: &str = "CREATE TABLE categories (
-    id STRING(36) NOT NULL,
-    name STRING(255) NOT NULL,
-    description STRING(MAX),
-) PRIMARY KEY (id)";
-
-const PRODUCTS_DDL: &str = "CREATE TABLE products (
-    id STRING(36) NOT NULL,
-    category_id STRING(36) NOT NULL,
-    name STRING(255) NOT NULL,
-    price FLOAT64 NOT NULL,
-    quantity INT64 NOT NULL,
-    active BOOL NOT NULL,
-) PRIMARY KEY (id)";
-
 mod insert_tests {
     use super::*;
 
     #[tokio::test]
     async fn test_insert_single_entity() {
-        let db_name = unique_db_name("ar_insert_single");
-        let db = setup_test_database(&db_name, vec![USERS_DDL]).await;
+        let db = setup_test_database().await;
 
         let new_user = user::ActiveModel {
             id: Set(uuid::Uuid::new_v4().to_string()),
@@ -73,8 +35,8 @@ mod insert_tests {
 
     #[tokio::test]
     async fn test_insert_with_null_fields() {
-        let db_name = unique_db_name("ar_insert_null");
-        let db = setup_test_database(&db_name, vec![USERS_DDL]).await;
+        
+        let db = setup_test_database().await;
 
         let new_user = user::ActiveModel {
             id: Set(uuid::Uuid::new_v4().to_string()),
@@ -94,8 +56,8 @@ mod insert_tests {
 
     #[tokio::test]
     async fn test_insert_multiple_entities() {
-        let db_name = unique_db_name("ar_insert_multi");
-        let db = setup_test_database(&db_name, vec![CATEGORIES_DDL]).await;
+        
+        let db = setup_test_database().await;
 
         for i in 0..5 {
             let cat = category::ActiveModel {
@@ -142,8 +104,8 @@ mod select_tests {
 
     #[tokio::test]
     async fn test_find_by_id() {
-        let db_name = unique_db_name("ar_find_id");
-        let db = setup_test_database(&db_name, vec![USERS_DDL]).await;
+        
+        let db = setup_test_database().await;
         let ids = setup_users(&db).await;
 
         let user = user::Entity::find_by_id(&ids[0]).one(&db).await.unwrap();
@@ -153,8 +115,8 @@ mod select_tests {
 
     #[tokio::test]
     async fn test_find_all() {
-        let db_name = unique_db_name("ar_find_all");
-        let db = setup_test_database(&db_name, vec![USERS_DDL]).await;
+        
+        let db = setup_test_database().await;
         setup_users(&db).await;
 
         let users = user::Entity::find().all(&db).await.unwrap();
@@ -163,8 +125,8 @@ mod select_tests {
 
     #[tokio::test]
     async fn test_find_with_filter() {
-        let db_name = unique_db_name("ar_find_filter");
-        let db = setup_test_database(&db_name, vec![USERS_DDL]).await;
+        
+        let db = setup_test_database().await;
         setup_users(&db).await;
 
         let active_users = user::Entity::find()
@@ -177,8 +139,8 @@ mod select_tests {
 
     #[tokio::test]
     async fn test_find_with_order_by() {
-        let db_name = unique_db_name("ar_find_order");
-        let db = setup_test_database(&db_name, vec![USERS_DDL]).await;
+        
+        let db = setup_test_database().await;
         setup_users(&db).await;
 
         let users = user::Entity::find()
@@ -193,8 +155,8 @@ mod select_tests {
 
     #[tokio::test]
     async fn test_find_with_limit() {
-        let db_name = unique_db_name("ar_find_limit");
-        let db = setup_test_database(&db_name, vec![USERS_DDL]).await;
+        
+        let db = setup_test_database().await;
         setup_users(&db).await;
 
         let users = user::Entity::find()
@@ -209,8 +171,8 @@ mod select_tests {
 
     #[tokio::test]
     async fn test_find_with_offset() {
-        let db_name = unique_db_name("ar_find_offset");
-        let db = setup_test_database(&db_name, vec![USERS_DDL]).await;
+        
+        let db = setup_test_database().await;
         setup_users(&db).await;
 
         let users = user::Entity::find()
@@ -227,8 +189,8 @@ mod select_tests {
 
     #[tokio::test]
     async fn test_find_one() {
-        let db_name = unique_db_name("ar_find_one");
-        let db = setup_test_database(&db_name, vec![USERS_DDL]).await;
+        
+        let db = setup_test_database().await;
         setup_users(&db).await;
 
         let user = user::Entity::find()
@@ -243,8 +205,8 @@ mod select_tests {
 
     #[tokio::test]
     async fn test_count() {
-        let db_name = unique_db_name("ar_count");
-        let db = setup_test_database(&db_name, vec![USERS_DDL]).await;
+        
+        let db = setup_test_database().await;
         setup_users(&db).await;
 
         let total = user::Entity::find().count(&db).await.unwrap();
@@ -260,8 +222,8 @@ mod select_tests {
 
     #[tokio::test]
     async fn test_find_with_contains() {
-        let db_name = unique_db_name("ar_find_contains");
-        let db = setup_test_database(&db_name, vec![USERS_DDL]).await;
+        
+        let db = setup_test_database().await;
         setup_users(&db).await;
 
         let users = user::Entity::find()
@@ -275,8 +237,8 @@ mod select_tests {
 
     #[tokio::test]
     async fn test_find_with_in_list() {
-        let db_name = unique_db_name("ar_find_in");
-        let db = setup_test_database(&db_name, vec![USERS_DDL]).await;
+        
+        let db = setup_test_database().await;
         setup_users(&db).await;
 
         let users = user::Entity::find()
@@ -290,8 +252,8 @@ mod select_tests {
 
     #[tokio::test]
     async fn test_find_with_is_null() {
-        let db_name = unique_db_name("ar_find_null");
-        let db = setup_test_database(&db_name, vec![USERS_DDL]).await;
+        
+        let db = setup_test_database().await;
         setup_users(&db).await;
 
         let users = user::Entity::find()
@@ -310,8 +272,8 @@ mod update_tests {
 
     #[tokio::test]
     async fn test_update_single_field() {
-        let db_name = unique_db_name("ar_update_single");
-        let db = setup_test_database(&db_name, vec![USERS_DDL]).await;
+        
+        let db = setup_test_database().await;
 
         let id = uuid::Uuid::new_v4().to_string();
         let new_user = user::ActiveModel {
@@ -336,8 +298,8 @@ mod update_tests {
 
     #[tokio::test]
     async fn test_update_multiple_fields() {
-        let db_name = unique_db_name("ar_update_multi");
-        let db = setup_test_database(&db_name, vec![USERS_DDL]).await;
+        
+        let db = setup_test_database().await;
 
         let id = uuid::Uuid::new_v4().to_string();
         let new_user = user::ActiveModel {
@@ -365,8 +327,8 @@ mod update_tests {
 
     #[tokio::test]
     async fn test_update_to_null() {
-        let db_name = unique_db_name("ar_update_null");
-        let db = setup_test_database(&db_name, vec![USERS_DDL]).await;
+        
+        let db = setup_test_database().await;
 
         let id = uuid::Uuid::new_v4().to_string();
         let new_user = user::ActiveModel {
@@ -394,8 +356,8 @@ mod delete_tests {
 
     #[tokio::test]
     async fn test_delete_single_entity() {
-        let db_name = unique_db_name("ar_delete_single");
-        let db = setup_test_database(&db_name, vec![USERS_DDL]).await;
+        
+        let db = setup_test_database().await;
 
         let id = uuid::Uuid::new_v4().to_string();
         let new_user = user::ActiveModel {
@@ -417,8 +379,8 @@ mod delete_tests {
 
     #[tokio::test]
     async fn test_delete_by_filter() {
-        let db_name = unique_db_name("ar_delete_filter");
-        let db = setup_test_database(&db_name, vec![CATEGORIES_DDL]).await;
+        
+        let db = setup_test_database().await;
 
         for i in 0..5 {
             let cat = category::ActiveModel {
@@ -481,8 +443,8 @@ mod relation_tests {
 
     #[tokio::test]
     async fn test_find_related() {
-        let db_name = unique_db_name("ar_related");
-        let db = setup_test_database(&db_name, vec![USERS_DDL, POSTS_DDL]).await;
+        
+        let db = setup_test_database().await;
         let (user_id, _) = setup_users_and_posts(&db).await;
 
         let user = user::Entity::find_by_id(&user_id)
@@ -497,8 +459,8 @@ mod relation_tests {
 
     #[tokio::test]
     async fn test_find_with_related() {
-        let db_name = unique_db_name("ar_with_related");
-        let db = setup_test_database(&db_name, vec![USERS_DDL, POSTS_DDL]).await;
+        
+        let db = setup_test_database().await;
         setup_users_and_posts(&db).await;
 
         let users_with_posts = user::Entity::find()
@@ -517,8 +479,8 @@ mod pagination_tests {
 
     #[tokio::test]
     async fn test_paginator() {
-        let db_name = unique_db_name("ar_paginator");
-        let db = setup_test_database(&db_name, vec![CATEGORIES_DDL]).await;
+        
+        let db = setup_test_database().await;
 
         for i in 0..25 {
             let cat = category::ActiveModel {
@@ -597,8 +559,8 @@ mod complex_query_tests {
 
     #[tokio::test]
     async fn test_complex_filter() {
-        let db_name = unique_db_name("ar_filter");
-        let db = setup_test_database(&db_name, vec![CATEGORIES_DDL, PRODUCTS_DDL]).await;
+        
+        let db = setup_test_database().await;
         setup_products(&db).await;
 
         let expensive_active = product::Entity::find()
@@ -613,8 +575,8 @@ mod complex_query_tests {
 
     #[tokio::test]
     async fn test_or_filter() {
-        let db_name = unique_db_name("ar_or_filter");
-        let db = setup_test_database(&db_name, vec![CATEGORIES_DDL, PRODUCTS_DDL]).await;
+        
+        let db = setup_test_database().await;
         setup_products(&db).await;
 
         use sea_orm::Condition;
@@ -634,8 +596,8 @@ mod complex_query_tests {
 
     #[tokio::test]
     async fn test_select_only() {
-        let db_name = unique_db_name("ar_select_only");
-        let db = setup_test_database(&db_name, vec![CATEGORIES_DDL, PRODUCTS_DDL]).await;
+        
+        let db = setup_test_database().await;
         setup_products(&db).await;
 
         let names: Vec<String> = product::Entity::find()
