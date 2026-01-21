@@ -4,3 +4,5 @@ Cargo.lock
 .env
 .DS_Store
 sea-orm-spanner/target/rust-analyzer/flycheck0
+sea-orm/
+sea-orm-spanner-plan.md

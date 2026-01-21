@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "sea-query-spanner",
     "sea-orm-spanner",
+    "sea-orm-migration-spanner",
     "examples/basic-crud",
 ]
 
