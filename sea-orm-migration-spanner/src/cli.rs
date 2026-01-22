@@ -9,12 +9,12 @@ use std::path::Path;
 #[command(about = "Spanner database migration tool")]
 struct Cli {
     #[arg(
-        short,
-        long,
+        short = 'd',
+        long = "database-path",
         env = "DATABASE_PATH",
         help = "Spanner database path (projects/{project}/instances/{instance}/databases/{database})"
     )]
-    database: Option<String>,
+    database_path: Option<String>,
 
     #[command(subcommand)]
     command: Commands,
@@ -50,23 +50,23 @@ pub async fn run_cli<M: MigratorTrait>(_migrator: M) {
         Commands::Init { dir } => run_migrate_init(&dir),
         Commands::Generate { name } => run_migrate_generate("./src", &name),
         Commands::Up { num } => {
-            let db = require_database(cli.database);
+            let db = require_database_path(cli.database_path);
             M::up(&db, num).await.map_err(|e| e.into())
         }
         Commands::Down { num } => {
-            let db = require_database(cli.database);
+            let db = require_database_path(cli.database_path);
             M::down(&db, Some(num)).await.map_err(|e| e.into())
         }
         Commands::Status => {
-            let db = require_database(cli.database);
+            let db = require_database_path(cli.database_path);
             M::status(&db).await.map_err(|e| e.into())
         }
         Commands::Fresh => {
-            let db = require_database(cli.database);
+            let db = require_database_path(cli.database_path);
             M::fresh(&db).await.map_err(|e| e.into())
         }
         Commands::Reset => {
-            let db = require_database(cli.database);
+            let db = require_database_path(cli.database_path);
             M::reset(&db).await.map_err(|e| e.into())
         }
     };
@@ -77,8 +77,9 @@ pub async fn run_cli<M: MigratorTrait>(_migrator: M) {
     }
 }
 
-fn require_database(database: Option<String>) -> String {
-    database.expect("DATABASE_PATH is required. Use -d or set DATABASE_PATH env var.")
+fn require_database_path(database_path: Option<String>) -> String {
+    database_path
+        .expect("DATABASE_PATH is required. Use --database-path or set DATABASE_PATH env var.")
 }
 
 pub fn run_migrate_init(migration_dir: &str) -> Result<(), Box<dyn std::error::Error>> {

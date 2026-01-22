@@ -77,7 +77,7 @@ fn database_path() -> String {
     format!(
         "projects/{}/instances/{}/databases/{}",
         PROJECT, INSTANCE, DATABASE
-    )
+    ) // projects/local-project/instances/test-instance/databases/migration_test_db
 }
 
 async fn setup_test_database() {
