@@ -1,4 +1,4 @@
-use crate::schema::SchemaManager;
+use crate::schema_manager::SchemaManager;
 use sea_orm::sea_query::{Alias, Expr, Order, Query};
 use sea_orm::{ActiveValue, ConnectionTrait, DbErr, EntityTrait, QueryFilter};
 use sea_orm_spanner::SpannerDatabase;
