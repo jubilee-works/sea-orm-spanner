@@ -258,7 +258,11 @@ impl SpannerMigrationTrait for Migration {{
     Ok(())
 }
 
-fn write_file(base_dir: &str, filename: &str, content: &str) -> Result<(), Box<dyn std::error::Error>> {
+fn write_file(
+    base_dir: &str,
+    filename: &str,
+    content: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
     let filepath = format!("{}{}", base_dir, filename);
     println!("Creating file: {}", filepath);
 

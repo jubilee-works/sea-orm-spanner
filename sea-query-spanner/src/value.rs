@@ -39,19 +39,27 @@ pub fn value_to_spanner_literal(value: &Value) -> String {
         #[cfg(feature = "with-chrono")]
         Value::ChronoTime(None) => "NULL".to_string(),
         #[cfg(feature = "with-chrono")]
-        Value::ChronoDateTime(Some(dt)) => format!("TIMESTAMP '{}'", dt.format("%Y-%m-%dT%H:%M:%S%.fZ")),
+        Value::ChronoDateTime(Some(dt)) => {
+            format!("TIMESTAMP '{}'", dt.format("%Y-%m-%dT%H:%M:%S%.fZ"))
+        }
         #[cfg(feature = "with-chrono")]
         Value::ChronoDateTime(None) => "NULL".to_string(),
         #[cfg(feature = "with-chrono")]
-        Value::ChronoDateTimeUtc(Some(dt)) => format!("TIMESTAMP '{}'", dt.format("%Y-%m-%dT%H:%M:%S%.fZ")),
+        Value::ChronoDateTimeUtc(Some(dt)) => {
+            format!("TIMESTAMP '{}'", dt.format("%Y-%m-%dT%H:%M:%S%.fZ"))
+        }
         #[cfg(feature = "with-chrono")]
         Value::ChronoDateTimeUtc(None) => "NULL".to_string(),
         #[cfg(feature = "with-chrono")]
-        Value::ChronoDateTimeLocal(Some(dt)) => format!("TIMESTAMP '{}'", dt.format("%Y-%m-%dT%H:%M:%S%.fZ")),
+        Value::ChronoDateTimeLocal(Some(dt)) => {
+            format!("TIMESTAMP '{}'", dt.format("%Y-%m-%dT%H:%M:%S%.fZ"))
+        }
         #[cfg(feature = "with-chrono")]
         Value::ChronoDateTimeLocal(None) => "NULL".to_string(),
         #[cfg(feature = "with-chrono")]
-        Value::ChronoDateTimeWithTimeZone(Some(dt)) => format!("TIMESTAMP '{}'", dt.format("%Y-%m-%dT%H:%M:%S%.fZ")),
+        Value::ChronoDateTimeWithTimeZone(Some(dt)) => {
+            format!("TIMESTAMP '{}'", dt.format("%Y-%m-%dT%H:%M:%S%.fZ"))
+        }
         #[cfg(feature = "with-chrono")]
         Value::ChronoDateTimeWithTimeZone(None) => "NULL".to_string(),
         #[cfg(feature = "with-uuid")]

@@ -1,5 +1,7 @@
 use chrono::Utc;
-use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, ModelTrait, PaginatorTrait, QueryFilter, Set};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, EntityTrait, ModelTrait, PaginatorTrait, QueryFilter, Set,
+};
 use sea_orm_spanner::SpannerDatabase;
 
 mod entities;
@@ -48,7 +50,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     println!("\n--- INSERT more users ---");
-    for (name, email) in [("Bob", "bob@example.com"), ("Charlie", "charlie@example.com")] {
+    for (name, email) in [
+        ("Bob", "bob@example.com"),
+        ("Charlie", "charlie@example.com"),
+    ] {
         let u = user::ActiveModel {
             id: Set(uuid::Uuid::new_v4().to_string()),
             name: Set(name.to_string()),
@@ -147,15 +152,13 @@ async fn setup_emulator_database() -> Result<(), Box<dyn std::error::Error>> {
             CreateDatabaseRequest {
                 parent: instance_path.clone(),
                 create_statement: format!("CREATE DATABASE `{}`", DATABASE),
-                extra_statements: vec![
-                    "CREATE TABLE users (
+                extra_statements: vec!["CREATE TABLE users (
                     id STRING(36) NOT NULL,
                     name STRING(255) NOT NULL,
                     email STRING(255) NOT NULL,
                     created_at TIMESTAMP NOT NULL,
                 ) PRIMARY KEY (id)"
-                        .to_string(),
-                ],
+                    .to_string()],
                 encryption_config: None,
                 database_dialect: DatabaseDialect::GoogleStandardSql.into(),
             },

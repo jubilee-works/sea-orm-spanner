@@ -13,7 +13,7 @@ version = "0.1.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 rust-version = "1.75"
-repository = "https://github.com/user/sea-orm-spanner"
+repository = "https://github.com/jubilee-works/sea-spanner"
 keywords = ["spanner", "sea-orm", "orm", "database", "google-cloud"]
 categories = ["database"]
 

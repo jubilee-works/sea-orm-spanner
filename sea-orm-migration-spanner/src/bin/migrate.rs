@@ -32,7 +32,12 @@ enum Commands {
 
     #[command(about = "Rollback applied migrations")]
     Down {
-        #[arg(short, long, default_value = "1", help = "Number of migrations to rollback")]
+        #[arg(
+            short,
+            long,
+            default_value = "1",
+            help = "Number of migrations to rollback"
+        )]
         num: u32,
     },
 

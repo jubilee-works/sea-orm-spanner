@@ -1,6 +1,6 @@
-use crate::schema::SpannerSchemaManager;
-use sea_orm::{ActiveValue, ConnectionTrait, DbErr, EntityTrait, QueryFilter};
+use crate::schema::SchemaManager;
 use sea_orm::sea_query::{Alias, Expr, Order, Query};
+use sea_orm::{ActiveValue, ConnectionTrait, DbErr, EntityTrait, QueryFilter};
 use sea_orm_spanner::SpannerDatabase;
 use std::collections::HashSet;
 use std::time::SystemTime;
@@ -35,7 +35,7 @@ pub enum MigrationStatus {
 }
 
 pub struct Migration {
-    migration: Box<dyn SpannerMigrationTrait>,
+    migration: Box<dyn MigrationTrait>,
     status: MigrationStatus,
 }
 
@@ -49,13 +49,15 @@ impl Migration {
     }
 }
 
-#[async_trait::async_trait]
-pub trait SpannerMigrationTrait: Send + Sync {
+pub trait MigrationName {
     fn name(&self) -> &str;
+}
 
-    async fn up(&self, manager: &SpannerSchemaManager) -> Result<(), DbErr>;
+#[async_trait::async_trait]
+pub trait MigrationTrait: MigrationName + Send + Sync {
+    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr>;
 
-    async fn down(&self, _manager: &SpannerSchemaManager) -> Result<(), DbErr> {
+    async fn down(&self, _manager: &SchemaManager) -> Result<(), DbErr> {
         Err(DbErr::Migration(
             "Rollback not implemented for this migration".to_owned(),
         ))
@@ -63,8 +65,8 @@ pub trait SpannerMigrationTrait: Send + Sync {
 }
 
 #[async_trait::async_trait]
-pub trait SpannerMigratorTrait: Send {
-    fn migrations() -> Vec<Box<dyn SpannerMigrationTrait>>;
+pub trait MigratorTrait: Send {
+    fn migrations() -> Vec<Box<dyn MigrationTrait>>;
 
     fn get_migration_files() -> Vec<Migration> {
         Self::migrations()
@@ -77,8 +79,8 @@ pub trait SpannerMigratorTrait: Send {
     }
 
     async fn install(database_path: &str) -> Result<(), DbErr> {
-        let schema_manager = SpannerSchemaManager::new(database_path);
-        schema_manager.create_table(MIGRATIONS_TABLE_DDL).await
+        let schema_manager = SchemaManager::new(database_path);
+        schema_manager.create_table_raw(MIGRATIONS_TABLE_DDL).await
     }
 
     async fn get_applied_versions(database_path: &str) -> Result<HashSet<String>, DbErr> {
@@ -149,7 +151,7 @@ pub trait SpannerMigratorTrait: Send {
             return Ok(());
         }
 
-        let schema_manager = SpannerSchemaManager::new(database_path);
+        let schema_manager = SchemaManager::new(database_path);
         let db = SpannerDatabase::connect(database_path).await?;
 
         let to_apply: Vec<_> = match steps {
@@ -202,7 +204,7 @@ pub trait SpannerMigratorTrait: Send {
             return Ok(());
         }
 
-        let schema_manager = SpannerSchemaManager::new(database_path);
+        let schema_manager = SchemaManager::new(database_path);
         let db = SpannerDatabase::connect(database_path).await?;
 
         let to_rollback: Vec<_> = match steps {
@@ -235,7 +237,7 @@ pub trait SpannerMigratorTrait: Send {
         info!("Dropping all tables and reapplying migrations");
         println!("Dropping all tables and reapplying migrations");
 
-        let schema_manager = SpannerSchemaManager::new(database_path);
+        let schema_manager = SchemaManager::new(database_path);
 
         let migrations = Self::get_migration_files();
         for migration in migrations.iter().rev() {
@@ -250,7 +252,7 @@ pub trait SpannerMigratorTrait: Send {
     async fn reset(database_path: &str) -> Result<(), DbErr> {
         Self::down(database_path, None).await?;
 
-        let schema_manager = SpannerSchemaManager::new(database_path);
+        let schema_manager = SchemaManager::new(database_path);
         schema_manager.drop_table("seaql_migrations").await
     }
 }

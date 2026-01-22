@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand};
 use migration::Migrator;
-use sea_orm_migration_spanner::SpannerMigratorTrait;
+use sea_orm_migration_spanner::MigratorTrait;
 
 #[derive(Parser)]
 #[command(name = "migration")]
@@ -22,7 +22,12 @@ struct Cli {
 enum Commands {
     #[command(about = "Initialize migration directory")]
     Init {
-        #[arg(short, long, default_value = "./migration", help = "Migration directory path")]
+        #[arg(
+            short,
+            long,
+            default_value = "./migration",
+            help = "Migration directory path"
+        )]
         dir: String,
     },
 
@@ -40,7 +45,12 @@ enum Commands {
 
     #[command(about = "Rollback applied migrations")]
     Down {
-        #[arg(short, long, default_value = "1", help = "Number of migrations to rollback")]
+        #[arg(
+            short,
+            long,
+            default_value = "1",
+            help = "Number of migrations to rollback"
+        )]
         num: u32,
     },
 

@@ -1,64 +1,67 @@
-use sea_orm::DbErr;
-use sea_orm_migration_spanner::{
-    SpannerMigrationTrait, SpannerMigratorTrait, SpannerSchemaManager,
-};
+use sea_orm_migration_spanner::prelude::*;
 use serial_test::serial;
 
 struct M20220101CreateUsers;
 
-#[async_trait::async_trait]
-impl SpannerMigrationTrait for M20220101CreateUsers {
+impl MigrationName for M20220101CreateUsers {
     fn name(&self) -> &str {
         "m20220101_000001_create_users"
     }
+}
 
-    async fn up(&self, manager: &SpannerSchemaManager) -> Result<(), DbErr> {
+#[async_trait]
+impl MigrationTrait for M20220101CreateUsers {
+    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
             .create_table(
-                "CREATE TABLE test_users (
-                    id STRING(36) NOT NULL,
-                    name STRING(255) NOT NULL,
-                    email STRING(255) NOT NULL,
-                ) PRIMARY KEY (id)",
+                SpannerTableBuilder::new()
+                    .table("test_users")
+                    .string("id", Some(36), true)
+                    .string("name", Some(255), true)
+                    .string("email", Some(255), true)
+                    .primary_key(["id"]),
             )
             .await
     }
 
-    async fn down(&self, manager: &SpannerSchemaManager) -> Result<(), DbErr> {
+    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager.drop_table("test_users").await
     }
 }
 
 struct M20220102CreatePosts;
 
-#[async_trait::async_trait]
-impl SpannerMigrationTrait for M20220102CreatePosts {
+impl MigrationName for M20220102CreatePosts {
     fn name(&self) -> &str {
         "m20220102_000001_create_posts"
     }
+}
 
-    async fn up(&self, manager: &SpannerSchemaManager) -> Result<(), DbErr> {
+#[async_trait]
+impl MigrationTrait for M20220102CreatePosts {
+    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
             .create_table(
-                "CREATE TABLE test_posts (
-                    id STRING(36) NOT NULL,
-                    user_id STRING(36) NOT NULL,
-                    title STRING(255) NOT NULL,
-                    content STRING(MAX),
-                ) PRIMARY KEY (id)",
+                SpannerTableBuilder::new()
+                    .table("test_posts")
+                    .string("id", Some(36), true)
+                    .string("user_id", Some(36), true)
+                    .string("title", Some(255), true)
+                    .string("content", None, false)
+                    .primary_key(["id"]),
             )
             .await
     }
 
-    async fn down(&self, manager: &SpannerSchemaManager) -> Result<(), DbErr> {
+    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager.drop_table("test_posts").await
     }
 }
 
 struct TestMigrator;
 
-impl SpannerMigratorTrait for TestMigrator {
-    fn migrations() -> Vec<Box<dyn SpannerMigrationTrait>> {
+impl MigratorTrait for TestMigrator {
+    fn migrations() -> Vec<Box<dyn MigrationTrait>> {
         vec![
             Box::new(M20220101CreateUsers),
             Box::new(M20220102CreatePosts),
@@ -142,11 +145,7 @@ async fn test_migration_up_and_down() {
     assert!(result.is_ok(), "Status check failed: {:?}", result.err());
 
     let result = TestMigrator::down(&db_path, Some(1)).await;
-    assert!(
-        result.is_ok(),
-        "Migration down failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "Migration down failed: {:?}", result.err());
 
     let result = TestMigrator::reset(&db_path).await;
     assert!(result.is_ok(), "Reset failed: {:?}", result.err());

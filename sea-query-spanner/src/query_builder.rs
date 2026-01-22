@@ -1,5 +1,8 @@
 use sea_query::{
-    backend::{EscapeBuilder, OperLeftAssocDecider, PrecedenceDecider, QueryBuilder, QuotedBuilder, TableRefBuilder},
+    backend::{
+        EscapeBuilder, OperLeftAssocDecider, PrecedenceDecider, QueryBuilder, QuotedBuilder,
+        TableRefBuilder,
+    },
     BinOper, Oper, Quote, SimpleExpr, SqlWriter, SubQueryStatement, Value,
 };
 
@@ -138,10 +141,7 @@ mod tests {
             .and_where(Expr::col(Alias::new("id")).eq(1))
             .to_string(SpannerQueryBuilder);
 
-        assert_eq!(
-            query,
-            r#"UPDATE `users` SET `name` = 'Bob' WHERE `id` = 1"#
-        );
+        assert_eq!(query, r#"UPDATE `users` SET `name` = 'Bob' WHERE `id` = 1"#);
     }
 
     #[test]
@@ -169,7 +169,10 @@ mod tests {
             .and_where(Expr::col(Alias::new("active")).eq(true))
             .build(SpannerQueryBuilder);
 
-        assert_eq!(sql, r#"SELECT `name` FROM `users` WHERE (`id` = @p1) AND (`active` = @p2)"#);
+        assert_eq!(
+            sql,
+            r#"SELECT `name` FROM `users` WHERE (`id` = @p1) AND (`active` = @p2)"#
+        );
         assert_eq!(values.0.len(), 2);
     }
 }

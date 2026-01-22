@@ -237,9 +237,19 @@ impl SpannerProxy {
                     .map(|s| {
                         let s = s.trim();
                         if let Some(as_pos) = s.to_uppercase().rfind(" AS ") {
-                            s[as_pos + 4..].trim().trim_matches('"').trim_matches('`').to_string()
+                            s[as_pos + 4..]
+                                .trim()
+                                .trim_matches('"')
+                                .trim_matches('`')
+                                .to_string()
                         } else if s.contains('.') {
-                            s.rsplit('.').next().unwrap_or(s).trim().trim_matches('"').trim_matches('`').to_string()
+                            s.rsplit('.')
+                                .next()
+                                .unwrap_or(s)
+                                .trim()
+                                .trim_matches('"')
+                                .trim_matches('`')
+                                .to_string()
                         } else {
                             s.trim_matches('"').trim_matches('`').to_string()
                         }
@@ -312,9 +322,7 @@ impl ProxyDatabaseTrait for SpannerProxy {
             .client
             .read_write_transaction(|tx, _cancel| {
                 let stmt = spanner_stmt.clone();
-                Box::pin(async move {
-                    tx.update(stmt).await.map_err(SpannerTxError::from)
-                })
+                Box::pin(async move { tx.update(stmt).await.map_err(SpannerTxError::from) })
             })
             .await
             .map_err(|e| SpannerDbErr::Execution(e.to_string()))?;

@@ -6,3 +6,4 @@ Cargo.lock
 sea-orm-spanner/target/rust-analyzer/flycheck0
 sea-orm/
 sea-orm-spanner-plan.md
+**/target/
