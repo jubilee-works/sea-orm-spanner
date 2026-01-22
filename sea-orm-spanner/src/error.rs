@@ -90,9 +90,14 @@ impl From<SpannerDbErr> for DbErr {
             SpannerDbErr::Execution(msg) => DbErr::Exec(sea_orm::RuntimeErr::Internal(msg)),
             SpannerDbErr::Transaction(msg) => DbErr::Query(sea_orm::RuntimeErr::Internal(msg)),
             SpannerDbErr::RowParse(msg) => DbErr::Type(msg),
-            SpannerDbErr::TypeConversion { column, expected, got } => {
-                DbErr::Type(format!("column={}, expected={}, got={}", column, expected, got))
-            }
+            SpannerDbErr::TypeConversion {
+                column,
+                expected,
+                got,
+            } => DbErr::Type(format!(
+                "column={}, expected={}, got={}",
+                column, expected, got
+            )),
             SpannerDbErr::ColumnNotFound(col) => DbErr::Type(format!("column not found: {}", col)),
             SpannerDbErr::InvalidConfig(msg) => DbErr::Conn(sea_orm::RuntimeErr::Internal(msg)),
         }

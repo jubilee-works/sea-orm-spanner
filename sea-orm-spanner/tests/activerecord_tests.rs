@@ -38,7 +38,6 @@ mod insert_tests {
     #[tokio::test]
     #[serial]
     async fn test_insert_with_null_fields() {
-        
         let db = setup_test_database().await;
 
         let new_user = user::ActiveModel {
@@ -60,7 +59,6 @@ mod insert_tests {
     #[tokio::test]
     #[serial]
     async fn test_insert_multiple_entities() {
-        
         let db = setup_test_database().await;
 
         for i in 0..5 {
@@ -109,7 +107,6 @@ mod select_tests {
     #[tokio::test]
     #[serial]
     async fn test_find_by_id() {
-        
         let db = setup_test_database().await;
         let ids = setup_users(&db).await;
 
@@ -121,7 +118,6 @@ mod select_tests {
     #[tokio::test]
     #[serial]
     async fn test_find_all() {
-        
         let db = setup_test_database().await;
         setup_users(&db).await;
 
@@ -132,7 +128,6 @@ mod select_tests {
     #[tokio::test]
     #[serial]
     async fn test_find_with_filter() {
-        
         let db = setup_test_database().await;
         setup_users(&db).await;
 
@@ -147,7 +142,6 @@ mod select_tests {
     #[tokio::test]
     #[serial]
     async fn test_find_with_order_by() {
-        
         let db = setup_test_database().await;
         setup_users(&db).await;
 
@@ -164,7 +158,6 @@ mod select_tests {
     #[tokio::test]
     #[serial]
     async fn test_find_with_limit() {
-        
         let db = setup_test_database().await;
         setup_users(&db).await;
 
@@ -181,7 +174,6 @@ mod select_tests {
     #[tokio::test]
     #[serial]
     async fn test_find_with_offset() {
-        
         let db = setup_test_database().await;
         setup_users(&db).await;
 
@@ -200,7 +192,6 @@ mod select_tests {
     #[tokio::test]
     #[serial]
     async fn test_find_one() {
-        
         let db = setup_test_database().await;
         setup_users(&db).await;
 
@@ -217,7 +208,6 @@ mod select_tests {
     #[tokio::test]
     #[serial]
     async fn test_count() {
-        
         let db = setup_test_database().await;
         setup_users(&db).await;
 
@@ -235,7 +225,6 @@ mod select_tests {
     #[tokio::test]
     #[serial]
     async fn test_find_with_contains() {
-        
         let db = setup_test_database().await;
         setup_users(&db).await;
 
@@ -251,7 +240,6 @@ mod select_tests {
     #[tokio::test]
     #[serial]
     async fn test_find_with_in_list() {
-        
         let db = setup_test_database().await;
         setup_users(&db).await;
 
@@ -267,7 +255,6 @@ mod select_tests {
     #[tokio::test]
     #[serial]
     async fn test_find_with_is_null() {
-        
         let db = setup_test_database().await;
         setup_users(&db).await;
 
@@ -288,7 +275,6 @@ mod update_tests {
     #[tokio::test]
     #[serial]
     async fn test_update_single_field() {
-        
         let db = setup_test_database().await;
 
         let id = uuid::Uuid::new_v4().to_string();
@@ -302,12 +288,20 @@ mod update_tests {
         };
         new_user.insert(&db).await.unwrap();
 
-        let user = user::Entity::find_by_id(&id).one(&db).await.unwrap().unwrap();
+        let user = user::Entity::find_by_id(&id)
+            .one(&db)
+            .await
+            .unwrap()
+            .unwrap();
         let mut active: user::ActiveModel = user.into_active_model();
         active.name = Set("Updated".to_string());
         active.update(&db).await.unwrap();
 
-        let updated = user::Entity::find_by_id(&id).one(&db).await.unwrap().unwrap();
+        let updated = user::Entity::find_by_id(&id)
+            .one(&db)
+            .await
+            .unwrap()
+            .unwrap();
         assert_eq!(updated.name, "Updated");
         assert_eq!(updated.email, "original@example.com");
     }
@@ -315,7 +309,6 @@ mod update_tests {
     #[tokio::test]
     #[serial]
     async fn test_update_multiple_fields() {
-        
         let db = setup_test_database().await;
 
         let id = uuid::Uuid::new_v4().to_string();
@@ -329,14 +322,22 @@ mod update_tests {
         };
         new_user.insert(&db).await.unwrap();
 
-        let user = user::Entity::find_by_id(&id).one(&db).await.unwrap().unwrap();
+        let user = user::Entity::find_by_id(&id)
+            .one(&db)
+            .await
+            .unwrap()
+            .unwrap();
         let mut active: user::ActiveModel = user.into_active_model();
         active.name = Set("New Name".to_string());
         active.email = Set("new@example.com".to_string());
         active.age = Set(Some(30));
         active.update(&db).await.unwrap();
 
-        let updated = user::Entity::find_by_id(&id).one(&db).await.unwrap().unwrap();
+        let updated = user::Entity::find_by_id(&id)
+            .one(&db)
+            .await
+            .unwrap()
+            .unwrap();
         assert_eq!(updated.name, "New Name");
         assert_eq!(updated.email, "new@example.com");
         assert_eq!(updated.age, Some(30));
@@ -345,7 +346,6 @@ mod update_tests {
     #[tokio::test]
     #[serial]
     async fn test_update_to_null() {
-        
         let db = setup_test_database().await;
 
         let id = uuid::Uuid::new_v4().to_string();
@@ -359,12 +359,20 @@ mod update_tests {
         };
         new_user.insert(&db).await.unwrap();
 
-        let user = user::Entity::find_by_id(&id).one(&db).await.unwrap().unwrap();
+        let user = user::Entity::find_by_id(&id)
+            .one(&db)
+            .await
+            .unwrap()
+            .unwrap();
         let mut active: user::ActiveModel = user.into_active_model();
         active.age = Set(None);
         active.update(&db).await.unwrap();
 
-        let updated = user::Entity::find_by_id(&id).one(&db).await.unwrap().unwrap();
+        let updated = user::Entity::find_by_id(&id)
+            .one(&db)
+            .await
+            .unwrap()
+            .unwrap();
         assert!(updated.age.is_none());
     }
 }
@@ -375,7 +383,6 @@ mod delete_tests {
     #[tokio::test]
     #[serial]
     async fn test_delete_single_entity() {
-        
         let db = setup_test_database().await;
 
         let id = uuid::Uuid::new_v4().to_string();
@@ -389,7 +396,11 @@ mod delete_tests {
         };
         new_user.insert(&db).await.unwrap();
 
-        let user = user::Entity::find_by_id(&id).one(&db).await.unwrap().unwrap();
+        let user = user::Entity::find_by_id(&id)
+            .one(&db)
+            .await
+            .unwrap()
+            .unwrap();
         user.delete(&db).await.unwrap();
 
         let deleted = user::Entity::find_by_id(&id).one(&db).await.unwrap();
@@ -399,7 +410,6 @@ mod delete_tests {
     #[tokio::test]
     #[serial]
     async fn test_delete_by_filter() {
-        
         let db = setup_test_database().await;
 
         for i in 0..5 {
@@ -464,7 +474,6 @@ mod relation_tests {
     #[tokio::test]
     #[serial]
     async fn test_find_related() {
-        
         let db = setup_test_database().await;
         let (user_id, _) = setup_users_and_posts(&db).await;
 
@@ -481,7 +490,6 @@ mod relation_tests {
     #[tokio::test]
     #[serial]
     async fn test_find_with_related() {
-        
         let db = setup_test_database().await;
         setup_users_and_posts(&db).await;
 
@@ -502,7 +510,6 @@ mod pagination_tests {
     #[tokio::test]
     #[serial]
     async fn test_paginator() {
-        
         let db = setup_test_database().await;
 
         for i in 0..25 {
@@ -583,7 +590,6 @@ mod complex_query_tests {
     #[tokio::test]
     #[serial]
     async fn test_complex_filter() {
-        
         let db = setup_test_database().await;
         setup_products(&db).await;
 
@@ -600,7 +606,6 @@ mod complex_query_tests {
     #[tokio::test]
     #[serial]
     async fn test_or_filter() {
-        
         let db = setup_test_database().await;
         setup_products(&db).await;
 
@@ -622,7 +627,6 @@ mod complex_query_tests {
     #[tokio::test]
     #[serial]
     async fn test_select_only() {
-        
         let db = setup_test_database().await;
         setup_products(&db).await;
 

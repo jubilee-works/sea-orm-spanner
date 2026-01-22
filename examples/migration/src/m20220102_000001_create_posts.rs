@@ -1,30 +1,32 @@
-use sea_orm::DbErr;
-use sea_orm_migration_spanner::{SpannerMigrationTrait, SpannerSchemaManager};
+use sea_orm_migration_spanner::prelude::*;
 
 pub struct Migration;
 
-#[async_trait::async_trait]
-impl SpannerMigrationTrait for Migration {
+impl MigrationName for Migration {
     fn name(&self) -> &str {
         "m20220102_000001_create_posts"
     }
+}
 
-    async fn up(&self, manager: &SpannerSchemaManager) -> Result<(), DbErr> {
+#[async_trait]
+impl MigrationTrait for Migration {
+    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
             .create_table(
-                "CREATE TABLE posts (
-                    id STRING(36) NOT NULL,
-                    user_id STRING(36) NOT NULL,
-                    title STRING(255) NOT NULL,
-                    content STRING(MAX),
-                    published BOOL NOT NULL,
-                    created_at TIMESTAMP NOT NULL,
-                ) PRIMARY KEY (id)",
+                SpannerTableBuilder::new()
+                    .table("posts")
+                    .string("id", Some(36), true)
+                    .string("user_id", Some(36), true)
+                    .string("title", Some(255), true)
+                    .string("content", None, false)
+                    .bool("published", true)
+                    .timestamp("created_at", true)
+                    .primary_key(["id"]),
             )
             .await
     }
 
-    async fn down(&self, manager: &SpannerSchemaManager) -> Result<(), DbErr> {
+    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager.drop_table("posts").await
     }
 }

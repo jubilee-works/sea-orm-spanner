@@ -55,7 +55,9 @@ pub async fn setup_test_database() -> DatabaseConnection {
 
     if !INITIALIZED.load(Ordering::SeqCst) {
         setup_instance().await.ok();
-        ensure_database_exists().await.expect("Failed to create database");
+        ensure_database_exists()
+            .await
+            .expect("Failed to create database");
         ensure_tables_exist().await;
         INITIALIZED.store(true, Ordering::SeqCst);
     }
@@ -168,10 +170,7 @@ async fn clear_tables(db: &DatabaseConnection) {
     for table in ALL_TABLES {
         let sql = format!("DELETE FROM {} WHERE true", table);
         let _ = db
-            .execute(Statement::from_string(
-                sea_orm::DatabaseBackend::MySql,
-                sql,
-            ))
+            .execute(Statement::from_string(sea_orm::DatabaseBackend::MySql, sql))
             .await;
     }
 }

@@ -8,6 +8,7 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 sea-orm = { version = "1.1", features = ["runtime-tokio-native-tls", "macros"] }
 sea-orm-spanner = { path = "../sea-orm-spanner" }
+sea-query-spanner = { path = "../sea-query-spanner" }
 google-cloud-spanner = "0.12"
 google-cloud-googleapis = { version = "0.6.0", features = ["spanner"] }
 async-trait = "0.1"

@@ -1,4 +1,4 @@
-# Sea-ORM Spanner
+# sea-spanner
 
 Google Cloud Spanner backend for [SeaORM](https://www.sea-ql.org/SeaORM/).
 
@@ -120,32 +120,47 @@ cargo run -p migration -- generate create_users_table
 ### Write Migration
 
 ```rust
-use sea_orm::DbErr;
-use sea_orm_migration_spanner::{SpannerMigrationTrait, SpannerSchemaManager};
+use sea_orm_migration_spanner::prelude::*;
 
 pub struct Migration;
 
-#[async_trait::async_trait]
-impl SpannerMigrationTrait for Migration {
+impl MigrationName for Migration {
     fn name(&self) -> &str {
         "m20220101_000001_create_users"
     }
+}
 
-    async fn up(&self, manager: &SpannerSchemaManager) -> Result<(), DbErr> {
-        manager.create_table(
-            "CREATE TABLE users (
-                id STRING(36) NOT NULL,
-                name STRING(255) NOT NULL,
-                email STRING(255) NOT NULL,
-                created_at TIMESTAMP NOT NULL,
-            ) PRIMARY KEY (id)"
-        ).await
+#[async_trait]
+impl MigrationTrait for Migration {
+    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .create_table(
+                SpannerTableBuilder::new()
+                    .table("users")
+                    .string("id", Some(36), true)
+                    .string("name", Some(255), true)
+                    .string("email", Some(255), true)
+                    .timestamp("created_at", true)
+                    .primary_key(["id"]),
+            )
+            .await
     }
 
-    async fn down(&self, manager: &SpannerSchemaManager) -> Result<(), DbErr> {
+    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager.drop_table("users").await
     }
 }
+```
+
+You can also use raw DDL if needed:
+
+```rust
+manager.create_table_raw(
+    "CREATE TABLE users (
+        id STRING(36) NOT NULL,
+        name STRING(255) NOT NULL,
+    ) PRIMARY KEY (id)"
+).await
 ```
 
 ### Run Migrations

@@ -1,4 +1,4 @@
-pub mod user;
-pub mod post;
 pub mod category;
+pub mod post;
 pub mod product;
+pub mod user;
