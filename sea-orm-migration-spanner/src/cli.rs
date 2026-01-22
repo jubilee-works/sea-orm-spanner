@@ -9,12 +9,12 @@ use std::path::Path;
 #[command(about = "Spanner database migration tool")]
 struct Cli {
     #[arg(
-        short = 'd',
-        long = "database-path",
-        env = "DATABASE_PATH",
-        help = "Spanner database path (projects/{project}/instances/{instance}/databases/{database})"
+        short = 'u',
+        long = "database-url",
+        env = "DATABASE_URL",
+        help = "Spanner database path in format: projects/{project}/instances/{instance}/databases/{database}"
     )]
-    database_path: Option<String>,
+    database_url: Option<String>,
 
     #[command(subcommand)]
     command: Commands,
@@ -50,23 +50,23 @@ pub async fn run_cli<M: MigratorTrait>(_migrator: M) {
         Commands::Init { dir } => run_migrate_init(&dir),
         Commands::Generate { name } => run_migrate_generate("./src", &name),
         Commands::Up { num } => {
-            let db = require_database_path(cli.database_path);
+            let db = require_database_url(cli.database_url);
             M::up(&db, num).await.map_err(|e| e.into())
         }
         Commands::Down { num } => {
-            let db = require_database_path(cli.database_path);
+            let db = require_database_url(cli.database_url);
             M::down(&db, Some(num)).await.map_err(|e| e.into())
         }
         Commands::Status => {
-            let db = require_database_path(cli.database_path);
+            let db = require_database_url(cli.database_url);
             M::status(&db).await.map_err(|e| e.into())
         }
         Commands::Fresh => {
-            let db = require_database_path(cli.database_path);
+            let db = require_database_url(cli.database_url);
             M::fresh(&db).await.map_err(|e| e.into())
         }
         Commands::Reset => {
-            let db = require_database_path(cli.database_path);
+            let db = require_database_url(cli.database_url);
             M::reset(&db).await.map_err(|e| e.into())
         }
     };
@@ -77,9 +77,9 @@ pub async fn run_cli<M: MigratorTrait>(_migrator: M) {
     }
 }
 
-fn require_database_path(database_path: Option<String>) -> String {
-    database_path
-        .expect("DATABASE_PATH is required. Use --database-path or set DATABASE_PATH env var.")
+fn require_database_url(database_url: Option<String>) -> String {
+    database_url
+        .expect("DATABASE_URL is required. Use -u/--database-url or set DATABASE_URL env var.")
 }
 
 pub fn run_migrate_init(migration_dir: &str) -> Result<(), Box<dyn std::error::Error>> {
@@ -161,8 +161,11 @@ Spanner database migrations using sea-orm-migration-spanner.
 ## Usage
 
 ```bash
-# Set database path
-export DATABASE_PATH="projects/{project}/instances/{instance}/databases/{database}"
+# Set database URL (Spanner uses path format: projects/{project}/instances/{instance}/databases/{database})
+export DATABASE_URL="projects/my-project/instances/my-instance/databases/my-db"
+
+# For local development with emulator
+export SPANNER_EMULATOR_HOST=localhost:9010
 
 # Check migration status
 cargo run -- status
