@@ -8,5 +8,3 @@ sea-orm-migration-spanner = { path = "../../sea-orm-migration-spanner" }
 sea-orm = { version = "1.1", features = ["runtime-tokio-native-tls"] }
 tokio = { version = "1", features = ["full"] }
 async-trait = "0.1"
-clap = { version = "4", features = ["derive", "env"] }
-dotenvy = "0.15"

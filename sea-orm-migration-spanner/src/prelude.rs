@@ -5,6 +5,7 @@
 //! use sea_orm_migration_spanner::prelude::*;
 //! ```
 
+pub use crate::cli;
 pub use crate::migrator::{MigrationName, MigrationStatus, MigrationTrait, MigratorTrait};
 pub use crate::schema_manager::SchemaManager;
 pub use crate::sea_orm_migration;

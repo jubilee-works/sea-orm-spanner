@@ -17,12 +17,11 @@ tokio = { version = "1", features = ["full"] }
 regex = "1"
 tracing = "0.1"
 chrono = "0.4"
-clap = { version = "4", features = ["derive", "env"], optional = true }
-dotenvy = { version = "0.15", optional = true }
+clap = { version = "4", features = ["derive", "env"] }
+dotenvy = "0.15"
 
 [features]
 default = []
-cli = ["clap", "dotenvy"]
 
 [dev-dependencies]
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }

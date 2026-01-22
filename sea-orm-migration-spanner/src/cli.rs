@@ -1,6 +1,85 @@
+use crate::MigratorTrait;
+use clap::{Parser, Subcommand};
 use std::fs;
 use std::io::Write;
 use std::path::Path;
+
+#[derive(Parser)]
+#[command(name = "migration")]
+#[command(about = "Spanner database migration tool")]
+struct Cli {
+    #[arg(
+        short,
+        long,
+        env = "DATABASE_PATH",
+        help = "Spanner database path (projects/{project}/instances/{instance}/databases/{database})"
+    )]
+    database: Option<String>,
+
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    Init {
+        #[arg(short, long, default_value = "./migration")]
+        dir: String,
+    },
+    Generate {
+        name: String,
+    },
+    Up {
+        #[arg(short, long)]
+        num: Option<u32>,
+    },
+    Down {
+        #[arg(short, long, default_value = "1")]
+        num: u32,
+    },
+    Status,
+    Fresh,
+    Reset,
+}
+
+pub async fn run_cli<M: MigratorTrait>(_migrator: M) {
+    dotenvy::dotenv().ok();
+    let cli = Cli::parse();
+
+    let result: Result<(), Box<dyn std::error::Error>> = match cli.command {
+        Commands::Init { dir } => run_migrate_init(&dir),
+        Commands::Generate { name } => run_migrate_generate("./src", &name),
+        Commands::Up { num } => {
+            let db = require_database(cli.database);
+            M::up(&db, num).await.map_err(|e| e.into())
+        }
+        Commands::Down { num } => {
+            let db = require_database(cli.database);
+            M::down(&db, Some(num)).await.map_err(|e| e.into())
+        }
+        Commands::Status => {
+            let db = require_database(cli.database);
+            M::status(&db).await.map_err(|e| e.into())
+        }
+        Commands::Fresh => {
+            let db = require_database(cli.database);
+            M::fresh(&db).await.map_err(|e| e.into())
+        }
+        Commands::Reset => {
+            let db = require_database(cli.database);
+            M::reset(&db).await.map_err(|e| e.into())
+        }
+    };
+
+    if let Err(e) = result {
+        eprintln!("Error: {}", e);
+        std::process::exit(1);
+    }
+}
+
+fn require_database(database: Option<String>) -> String {
+    database.expect("DATABASE_PATH is required. Use -d or set DATABASE_PATH env var.")
+}
 
 pub fn run_migrate_init(migration_dir: &str) -> Result<(), Box<dyn std::error::Error>> {
     let migration_dir = if migration_dir.ends_with('/') {
@@ -29,12 +108,12 @@ dotenvy = "0.15"
 
     let lib_rs = r#"mod m20220101_000001_create_table;
 
-use sea_orm_migration_spanner::{SpannerMigrationTrait, SpannerMigratorTrait};
+use sea_orm_migration_spanner::prelude::*;
 
 pub struct Migrator;
 
-impl SpannerMigratorTrait for Migrator {
-    fn migrations() -> Vec<Box<dyn SpannerMigrationTrait>> {
+impl MigratorTrait for Migrator {
+    fn migrations() -> Vec<Box<dyn MigrationTrait>> {
         vec![
             Box::new(m20220101_000001_create_table::Migration),
         ]
@@ -42,103 +121,24 @@ impl SpannerMigratorTrait for Migrator {
 }
 "#;
 
-    let main_rs = r#"use clap::{Parser, Subcommand};
-use migration::Migrator;
-use sea_orm_migration_spanner::SpannerMigratorTrait;
-
-#[derive(Parser)]
-#[command(name = "migration")]
-#[command(about = "Spanner database migration tool")]
-struct Cli {
-    #[arg(
-        short,
-        long,
-        env = "DATABASE_PATH",
-        help = "Spanner database path (projects/{project}/instances/{instance}/databases/{database})"
-    )]
-    database: Option<String>,
-
-    #[command(subcommand)]
-    command: Commands,
-}
-
-#[derive(Subcommand)]
-enum Commands {
-    #[command(about = "Generate a new migration file")]
-    Generate {
-        #[arg(help = "Name of the migration")]
-        name: String,
-    },
-
-    #[command(about = "Apply pending migrations")]
-    Up {
-        #[arg(short, long, help = "Number of migrations to apply")]
-        num: Option<u32>,
-    },
-
-    #[command(about = "Rollback applied migrations")]
-    Down {
-        #[arg(short, long, default_value = "1", help = "Number of migrations to rollback")]
-        num: u32,
-    },
-
-    #[command(about = "Check the status of all migrations")]
-    Status,
-
-    #[command(about = "Drop all tables and reapply all migrations")]
-    Fresh,
-
-    #[command(about = "Rollback all applied migrations")]
-    Reset,
-}
+    let main_rs = r#"use sea_orm_migration_spanner::prelude::*;
 
 #[tokio::main]
 async fn main() {
-    dotenvy::dotenv().ok();
-
-    let cli = Cli::parse();
-
-    match cli.command {
-        Commands::Generate { name } => {
-            if let Err(e) = sea_orm_migration_spanner::run_migrate_generate("./src", &name) {
-                eprintln!("Error: {}", e);
-                std::process::exit(1);
-            }
-        }
-        cmd => {
-            let database = cli.database.expect("DATABASE_PATH is required for this command");
-            let result = match cmd {
-                Commands::Up { num } => Migrator::up(&database, num).await,
-                Commands::Down { num } => Migrator::down(&database, Some(num)).await,
-                Commands::Status => Migrator::status(&database).await,
-                Commands::Fresh => Migrator::fresh(&database).await,
-                Commands::Reset => Migrator::reset(&database).await,
-                Commands::Generate { .. } => unreachable!(),
-            };
-
-            if let Err(e) = result {
-                eprintln!("Error: {}", e);
-                std::process::exit(1);
-            }
-        }
-    }
+    cli::run_cli(migration::Migrator).await;
 }
 "#;
 
-    let migration_template = r#"use sea_orm::DbErr;
-use sea_orm_migration_spanner::{SpannerMigrationTrait, SpannerSchemaManager};
+    let migration_template = r#"use sea_orm_migration_spanner::prelude::*;
 
+#[derive(DeriveMigrationName)]
 pub struct Migration;
 
-#[async_trait::async_trait]
-impl SpannerMigrationTrait for Migration {
-    fn name(&self) -> &str {
-        "m20220101_000001_create_table"
-    }
-
-    async fn up(&self, manager: &SpannerSchemaManager) -> Result<(), DbErr> {
+#[async_trait]
+impl MigrationTrait for Migration {
+    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .create_table(
+            .create_table_raw(
                 "CREATE TABLE example_table (
                     id STRING(36) NOT NULL,
                     name STRING(255) NOT NULL,
@@ -147,8 +147,8 @@ impl SpannerMigrationTrait for Migration {
             .await
     }
 
-    async fn down(&self, manager: &SpannerSchemaManager) -> Result<(), DbErr> {
-        manager.drop_table("example_table").await
+    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager.drop_table_by_name("example_table").await
     }
 }
 "#;
@@ -221,22 +221,18 @@ pub fn run_migrate_generate(
     let file_name = format!("m{}_{}", timestamp, migration_name);
 
     let content = format!(
-        r#"use sea_orm::DbErr;
-use sea_orm_migration_spanner::{{SpannerMigrationTrait, SpannerSchemaManager}};
+        r#"use sea_orm_migration_spanner::prelude::*;
 
+#[derive(DeriveMigrationName)]
 pub struct Migration;
 
-#[async_trait::async_trait]
-impl SpannerMigrationTrait for Migration {{
-    fn name(&self) -> &str {{
-        "{file_name}"
-    }}
-
-    async fn up(&self, manager: &SpannerSchemaManager) -> Result<(), DbErr> {{
+#[async_trait]
+impl MigrationTrait for Migration {{
+    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {{
         todo!("Implement migration up")
     }}
 
-    async fn down(&self, manager: &SpannerSchemaManager) -> Result<(), DbErr> {{
+    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {{
         todo!("Implement migration down")
     }}
 }}
