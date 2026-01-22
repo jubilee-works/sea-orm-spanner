@@ -8,5 +8,9 @@
 pub use crate::migrator::{MigrationName, MigrationStatus, MigrationTrait, MigratorTrait};
 pub use crate::schema_manager::SchemaManager;
 pub use async_trait::async_trait;
-pub use sea_orm::DbErr;
+pub use sea_orm::{
+    self,
+    sea_query::{self, *},
+    ConnectionTrait, DbErr, DeriveIden, DeriveMigrationName,
+};
 pub use sea_query_spanner::{SpannerAlterTable, SpannerIndexBuilder, SpannerTableBuilder};
