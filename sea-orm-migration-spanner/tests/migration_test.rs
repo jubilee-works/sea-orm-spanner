@@ -13,7 +13,7 @@ impl MigrationName for M20220101CreateUsers {
 impl MigrationTrait for M20220101CreateUsers {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .create_table(
+            .create_table_spanner(
                 SpannerTableBuilder::new()
                     .table("test_users")
                     .string("id", Some(36), true)
@@ -25,7 +25,7 @@ impl MigrationTrait for M20220101CreateUsers {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager.drop_table("test_users").await
+        manager.drop_table_by_name("test_users").await
     }
 }
 
@@ -41,7 +41,7 @@ impl MigrationName for M20220102CreatePosts {
 impl MigrationTrait for M20220102CreatePosts {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .create_table(
+            .create_table_spanner(
                 SpannerTableBuilder::new()
                     .table("test_posts")
                     .string("id", Some(36), true)
@@ -54,7 +54,7 @@ impl MigrationTrait for M20220102CreatePosts {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager.drop_table("test_posts").await
+        manager.drop_table_by_name("test_posts").await
     }
 }
 
