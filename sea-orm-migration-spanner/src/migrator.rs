@@ -49,9 +49,7 @@ impl Migration {
     }
 }
 
-pub trait MigrationName {
-    fn name(&self) -> &str;
-}
+pub use sea_orm_migration::MigrationName;
 
 #[async_trait::async_trait]
 pub trait MigrationTrait: MigrationName + Send + Sync {

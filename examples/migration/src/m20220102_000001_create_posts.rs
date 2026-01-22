@@ -1,12 +1,7 @@
 use sea_orm_migration_spanner::prelude::*;
 
+#[derive(DeriveMigrationName)]
 pub struct Migration;
-
-impl MigrationName for Migration {
-    fn name(&self) -> &str {
-        "m20220102_000001_create_posts"
-    }
-}
 
 #[async_trait]
 impl MigrationTrait for Migration {
