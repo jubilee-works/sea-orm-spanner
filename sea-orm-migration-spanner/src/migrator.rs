@@ -242,7 +242,7 @@ pub trait MigratorTrait: Send {
             let _ = migration.migration.down(&schema_manager).await;
         }
 
-        let _ = schema_manager.drop_table("seaql_migrations").await;
+        let _ = schema_manager.drop_table_by_name("seaql_migrations").await;
 
         Self::up(database_path, None).await
     }
@@ -251,6 +251,6 @@ pub trait MigratorTrait: Send {
         Self::down(database_path, None).await?;
 
         let schema_manager = SchemaManager::new(database_path);
-        schema_manager.drop_table("seaql_migrations").await
+        schema_manager.drop_table_by_name("seaql_migrations").await
     }
 }

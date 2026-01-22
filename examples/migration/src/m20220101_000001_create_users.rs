@@ -7,7 +7,7 @@ pub struct Migration;
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .create_table(
+            .create_table_spanner(
                 SpannerTableBuilder::new()
                     .table("users")
                     .string("id", Some(36), true)
@@ -20,6 +20,6 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager.drop_table("users").await
+        manager.drop_table_by_name("users").await
     }
 }

@@ -1,5 +1,6 @@
 mod m20220101_000001_create_users;
 mod m20220102_000001_create_posts;
+mod m20260115_072606_create_table;
 
 use sea_orm_migration_spanner::prelude::*;
 
@@ -10,6 +11,7 @@ impl MigratorTrait for Migrator {
         vec![
             Box::new(m20220101_000001_create_users::Migration),
             Box::new(m20220102_000001_create_posts::Migration),
+            Box::new(m20260115_072606_create_table::Migration),
         ]
     }
 }
