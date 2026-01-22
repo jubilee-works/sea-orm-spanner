@@ -73,11 +73,10 @@ fn mysql_ddl_to_spanner(mysql_ddl: &str) -> String {
     let tinyint1_re = Regex::new(r"(?i)\bTINYINT\s*\(\s*1\s*\)").unwrap();
     sql = tinyint1_re.replace_all(&sql, "BOOL").to_string();
 
-    // Integer types → INT64
-    let int_types_re = Regex::new(r"(?i)\b(BIG)?INT(EGER)?\s*(\(\s*\d+\s*\))?").unwrap();
+    let int_types_re = Regex::new(r"(?i)\b(BIG)?INT(EGER)?\b\s*(\(\s*\d+\s*\))?").unwrap();
     sql = int_types_re.replace_all(&sql, "INT64 ").to_string();
 
-    let smallint_re = Regex::new(r"(?i)\b(SMALL|TINY|MEDIUM)INT\s*(\(\s*\d+\s*\))?").unwrap();
+    let smallint_re = Regex::new(r"(?i)\b(SMALL|TINY|MEDIUM)INT\b\s*(\(\s*\d+\s*\))?").unwrap();
     sql = smallint_re.replace_all(&sql, "INT64 ").to_string();
 
     // VARCHAR/CHAR → STRING
@@ -104,11 +103,10 @@ fn mysql_ddl_to_spanner(mysql_ddl: &str) -> String {
 
     // DATETIME → TIMESTAMP
     let datetime_re = Regex::new(r"(?i)\bDATETIME\s*(\(\s*\d+\s*\))?").unwrap();
-    sql = datetime_re.replace_all(&sql, "TIMESTAMP").to_string();
+    sql = datetime_re.replace_all(&sql, "TIMESTAMP ").to_string();
 
-    // TIMESTAMP stays TIMESTAMP
     let timestamp_re = Regex::new(r"(?i)\bTIMESTAMP\s*(\(\s*\d+\s*\))?").unwrap();
-    sql = timestamp_re.replace_all(&sql, "TIMESTAMP").to_string();
+    sql = timestamp_re.replace_all(&sql, "TIMESTAMP ").to_string();
 
     // DATE stays DATE
 
