@@ -217,6 +217,12 @@ impl SpannerProxy {
             return Value::ChronoDateTimeUtc(v.map(Box::new));
         }
         if let Ok(v) = row.column::<Option<String>>(idx) {
+            #[cfg(feature = "with-uuid")]
+            if let Some(ref s) = v {
+                if let Ok(uuid) = uuid::Uuid::parse_str(s) {
+                    return Value::Uuid(Some(Box::new(uuid)));
+                }
+            }
             return Value::String(v.map(Box::new));
         }
         if let Ok(v) = row.column::<Option<Vec<u8>>>(idx) {
