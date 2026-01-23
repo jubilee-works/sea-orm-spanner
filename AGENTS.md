@@ -1,0 +1,2 @@
+- Don't switch branch without asking
+- Use the newest version crate possible
