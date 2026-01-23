@@ -1,3 +1,4 @@
+pub mod array_support;
 mod database;
 mod error;
 #[cfg(feature = "with-json")]
@@ -6,6 +7,7 @@ mod proxy;
 #[cfg(feature = "with-uuid")]
 pub mod uuid_support;
 
+pub use array_support::*;
 pub use database::SpannerDatabase;
 pub use error::SpannerDbErr;
 #[cfg(feature = "with-json")]

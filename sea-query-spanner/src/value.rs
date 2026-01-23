@@ -74,6 +74,12 @@ pub fn value_to_spanner_literal(value: &Value) -> String {
         Value::Decimal(Some(d)) => d.to_string(),
         #[cfg(feature = "with-rust_decimal")]
         Value::Decimal(None) => "NULL".to_string(),
+        Value::Array(_, Some(values)) => {
+            let elements: Vec<String> =
+                values.iter().map(|v| value_to_spanner_literal(v)).collect();
+            format!("[{}]", elements.join(", "))
+        }
+        Value::Array(_, None) => "NULL".to_string(),
         #[allow(unreachable_patterns)]
         _ => "NULL".to_string(),
     }

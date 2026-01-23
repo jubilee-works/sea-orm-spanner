@@ -11,13 +11,14 @@ categories = ["database"]
 
 [features]
 default = []
+with-array = ["sea-query/postgres-array"]
 with-chrono = ["sea-query/with-chrono", "chrono"]
 with-uuid = ["sea-query/with-uuid", "uuid"]
 with-json = ["sea-query/with-json", "serde_json"]
 with-rust_decimal = ["sea-query/with-rust_decimal", "rust_decimal"]
 
 [dependencies]
-sea-query = { version = "0.32", default-features = false }
+sea-query = { version = "0.32", default-features = false, features = ["postgres-array"] }
 chrono = { version = "0.4", features = ["serde"], optional = true }
 uuid = { version = "1", features = ["v4", "serde"], optional = true }
 rust_decimal = { version = "1", features = ["serde"], optional = true }

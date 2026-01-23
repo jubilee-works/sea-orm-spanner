@@ -1,3 +1,4 @@
+use crate::array_support::*;
 use crate::error::SpannerDbErr;
 use async_trait::async_trait;
 use google_cloud_spanner::client::Client;
@@ -7,7 +8,7 @@ use sea_orm::ProxyDatabaseTrait;
 use sea_orm::ProxyExecResult;
 use sea_orm::ProxyRow;
 use sea_orm::{DbErr, Statement};
-use sea_query::Value;
+use sea_query::{ArrayType, Value};
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
@@ -181,6 +182,15 @@ impl SpannerProxy {
             #[cfg(feature = "with-rust_decimal")]
             Value::Decimal(None) => stmt.add_param(param_name, &Option::<String>::None),
 
+            Value::Array(array_type, Some(values)) => {
+                self.bind_array(stmt, param_name, array_type, values)?;
+                return Ok(());
+            }
+            Value::Array(array_type, None) => {
+                self.bind_null_array(stmt, param_name, array_type)?;
+                return Ok(());
+            }
+
             #[allow(unreachable_patterns)]
             _ => {
                 return Err(SpannerDbErr::TypeConversion {
@@ -192,6 +202,197 @@ impl SpannerProxy {
             }
         }
 
+        Ok(())
+    }
+
+    fn bind_array(
+        &self,
+        stmt: &mut SpannerStatement,
+        param_name: &str,
+        array_type: &ArrayType,
+        values: &[Value],
+    ) -> Result<(), DbErr> {
+        match array_type {
+            ArrayType::Bool => {
+                let arr: Vec<bool> = values
+                    .iter()
+                    .filter_map(|v| match v {
+                        Value::Bool(Some(b)) => Some(*b),
+                        _ => None,
+                    })
+                    .collect();
+                stmt.add_param(param_name, &arr);
+            }
+            ArrayType::TinyInt | ArrayType::SmallInt | ArrayType::Int | ArrayType::BigInt => {
+                let arr: Vec<i64> = values
+                    .iter()
+                    .filter_map(|v| match v {
+                        Value::TinyInt(Some(i)) => Some(*i as i64),
+                        Value::SmallInt(Some(i)) => Some(*i as i64),
+                        Value::Int(Some(i)) => Some(*i as i64),
+                        Value::BigInt(Some(i)) => Some(*i),
+                        _ => None,
+                    })
+                    .collect();
+                stmt.add_param(param_name, &arr);
+            }
+            ArrayType::TinyUnsigned
+            | ArrayType::SmallUnsigned
+            | ArrayType::Unsigned
+            | ArrayType::BigUnsigned => {
+                let arr: Vec<i64> = values
+                    .iter()
+                    .filter_map(|v| match v {
+                        Value::TinyUnsigned(Some(i)) => Some(*i as i64),
+                        Value::SmallUnsigned(Some(i)) => Some(*i as i64),
+                        Value::Unsigned(Some(i)) => Some(*i as i64),
+                        Value::BigUnsigned(Some(i)) => Some(*i as i64),
+                        _ => None,
+                    })
+                    .collect();
+                stmt.add_param(param_name, &arr);
+            }
+            ArrayType::Float | ArrayType::Double => {
+                let arr: Vec<f64> = values
+                    .iter()
+                    .filter_map(|v| match v {
+                        Value::Float(Some(f)) => Some(*f as f64),
+                        Value::Double(Some(d)) => Some(*d),
+                        _ => None,
+                    })
+                    .collect();
+                stmt.add_param(param_name, &arr);
+            }
+            ArrayType::String | ArrayType::Char => {
+                let arr: Vec<String> = values
+                    .iter()
+                    .filter_map(|v| match v {
+                        Value::String(Some(s)) => Some(s.as_ref().clone()),
+                        Value::Char(Some(c)) => Some(c.to_string()),
+                        _ => None,
+                    })
+                    .collect();
+                stmt.add_param(param_name, &arr);
+            }
+            ArrayType::Bytes => {
+                let arr: Vec<Vec<u8>> = values
+                    .iter()
+                    .filter_map(|v| match v {
+                        Value::Bytes(Some(b)) => Some(b.as_ref().clone()),
+                        _ => None,
+                    })
+                    .collect();
+                stmt.add_param(param_name, &SpannerBytesArray(arr));
+            }
+            #[cfg(feature = "with-chrono")]
+            ArrayType::ChronoDate
+            | ArrayType::ChronoTime
+            | ArrayType::ChronoDateTime
+            | ArrayType::ChronoDateTimeUtc
+            | ArrayType::ChronoDateTimeLocal
+            | ArrayType::ChronoDateTimeWithTimeZone => {
+                let arr: Vec<String> = values
+                    .iter()
+                    .filter_map(|v| match v {
+                        Value::ChronoDate(Some(d)) => Some(d.format("%Y-%m-%d").to_string()),
+                        Value::ChronoTime(Some(t)) => Some(t.format("%H:%M:%S%.f").to_string()),
+                        Value::ChronoDateTime(Some(dt)) => {
+                            Some(dt.format("%Y-%m-%dT%H:%M:%S%.fZ").to_string())
+                        }
+                        Value::ChronoDateTimeUtc(Some(dt)) => {
+                            Some(dt.format("%Y-%m-%dT%H:%M:%S%.fZ").to_string())
+                        }
+                        Value::ChronoDateTimeLocal(Some(dt)) => {
+                            Some(dt.format("%Y-%m-%dT%H:%M:%S%.fZ").to_string())
+                        }
+                        Value::ChronoDateTimeWithTimeZone(Some(dt)) => {
+                            Some(dt.format("%Y-%m-%dT%H:%M:%S%.fZ").to_string())
+                        }
+                        _ => None,
+                    })
+                    .collect();
+                stmt.add_param(param_name, &arr);
+            }
+            #[cfg(feature = "with-uuid")]
+            ArrayType::Uuid => {
+                let arr: Vec<String> = values
+                    .iter()
+                    .filter_map(|v| match v {
+                        Value::Uuid(Some(u)) => Some(u.to_string()),
+                        _ => None,
+                    })
+                    .collect();
+                stmt.add_param(param_name, &arr);
+            }
+            #[cfg(feature = "with-json")]
+            ArrayType::Json => {
+                let arr: Vec<String> = values
+                    .iter()
+                    .filter_map(|v| match v {
+                        Value::Json(Some(j)) => Some(j.to_string()),
+                        _ => None,
+                    })
+                    .collect();
+                stmt.add_param(param_name, &arr);
+            }
+            #[cfg(feature = "with-rust_decimal")]
+            ArrayType::Decimal => {
+                let arr: Vec<String> = values
+                    .iter()
+                    .filter_map(|v| match v {
+                        Value::Decimal(Some(d)) => Some(d.to_string()),
+                        _ => None,
+                    })
+                    .collect();
+                stmt.add_param(param_name, &arr);
+            }
+            #[allow(unreachable_patterns)]
+            _ => {
+                return Err(SpannerDbErr::TypeConversion {
+                    column: param_name.to_string(),
+                    expected: "supported array type".to_string(),
+                    got: format!("{:?}", array_type),
+                }
+                .into());
+            }
+        }
+        Ok(())
+    }
+
+    fn bind_null_array(
+        &self,
+        stmt: &mut SpannerStatement,
+        param_name: &str,
+        array_type: &ArrayType,
+    ) -> Result<(), DbErr> {
+        match array_type {
+            ArrayType::Bool => {
+                stmt.add_param(param_name, &SpannerOptionalBoolArray::none());
+            }
+            ArrayType::TinyInt
+            | ArrayType::SmallInt
+            | ArrayType::Int
+            | ArrayType::BigInt
+            | ArrayType::TinyUnsigned
+            | ArrayType::SmallUnsigned
+            | ArrayType::Unsigned
+            | ArrayType::BigUnsigned => {
+                stmt.add_param(param_name, &SpannerOptionalInt64Array::none());
+            }
+            ArrayType::Float | ArrayType::Double => {
+                stmt.add_param(param_name, &SpannerOptionalFloat64Array::none());
+            }
+            ArrayType::String | ArrayType::Char => {
+                stmt.add_param(param_name, &SpannerOptionalStringArray::none());
+            }
+            ArrayType::Bytes => {
+                stmt.add_param(param_name, &SpannerOptionalBytesArray::none());
+            }
+            #[allow(unreachable_patterns)]
+            _ => {
+                stmt.add_param(param_name, &SpannerOptionalStringArray::none());
+            }
+        }
         Ok(())
     }
 
@@ -241,6 +442,26 @@ impl SpannerProxy {
         }
         if let Ok(bytes) = row.column::<Option<Vec<u8>>>(idx) {
             return Value::Bytes(bytes.map(Box::new));
+        }
+
+        if let Ok(arr) = row.column::<Vec<i64>>(idx) {
+            let values: Vec<Value> = arr.into_iter().map(|v| Value::BigInt(Some(v))).collect();
+            return Value::Array(ArrayType::BigInt, Some(Box::new(values)));
+        }
+        if let Ok(arr) = row.column::<Vec<f64>>(idx) {
+            let values: Vec<Value> = arr.into_iter().map(|v| Value::Double(Some(v))).collect();
+            return Value::Array(ArrayType::Double, Some(Box::new(values)));
+        }
+        if let Ok(arr) = row.column::<Vec<String>>(idx) {
+            let values: Vec<Value> = arr
+                .into_iter()
+                .map(|v| Value::String(Some(Box::new(v))))
+                .collect();
+            return Value::Array(ArrayType::String, Some(Box::new(values)));
+        }
+        if let Ok(arr) = row.column::<Vec<bool>>(idx) {
+            let values: Vec<Value> = arr.into_iter().map(|v| Value::Bool(Some(v))).collect();
+            return Value::Array(ArrayType::Bool, Some(Box::new(values)));
         }
 
         tracing::warn!("Unknown column type for {}, returning null", column_name);

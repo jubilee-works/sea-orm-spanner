@@ -65,9 +65,20 @@ const ALL_DDL: &[&str] = &[
         json_val JSON NOT NULL,
         json_nullable JSON,
     ) PRIMARY KEY (id)",
+    "CREATE TABLE array_types (
+        id STRING(36) NOT NULL,
+        int64_array ARRAY<INT64> NOT NULL,
+        int64_array_nullable ARRAY<INT64>,
+        float64_array ARRAY<FLOAT64> NOT NULL,
+        float64_array_nullable ARRAY<FLOAT64>,
+        string_array ARRAY<STRING(MAX)> NOT NULL,
+        string_array_nullable ARRAY<STRING(MAX)>,
+        bool_array ARRAY<BOOL> NOT NULL,
+        bool_array_nullable ARRAY<BOOL>,
+    ) PRIMARY KEY (id)",
 ];
 
-const ALL_TABLES: &[&str] = &["users", "posts", "categories", "products", "all_types"];
+const ALL_TABLES: &[&str] = &["users", "posts", "categories", "products", "all_types", "array_types"];
 
 pub async fn setup_test_database() -> DatabaseConnection {
     if std::env::var("SPANNER_EMULATOR_HOST").is_err() {
