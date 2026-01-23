@@ -1,13 +1,12 @@
-# sea-spanner
+# sea-orm-spanner
 
 Google Cloud Spanner backend for [SeaORM](https://www.sea-ql.org/SeaORM/).
 
-## Crates
+## Sub-crates
 
 | Crate | Description |
 |-------|-------------|
 | `sea-query-spanner` | SQL query builder for Spanner (converts SeaQuery to Spanner SQL) |
-| `sea-orm-spanner` | SeaORM backend using ProxyDatabaseTrait |
 | `sea-orm-migration-spanner` | Migration support with CLI |
 
 ## Requirements
