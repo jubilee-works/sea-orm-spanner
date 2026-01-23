@@ -242,7 +242,8 @@ SeaORM's `DbBackend` determines SQL generation behavior. Spanner doesn't support
 - `with-chrono` - DateTime support with chrono
 - `with-uuid` - UUID support
 - `with-json` - JSON support
-- `with-rust_decimal` - Decimal support
+- `with-rust_decimal` - NUMERIC/Decimal support
+- `with-array` - ARRAY type support (INT64, FLOAT64, STRING, BOOL arrays)
 
 ## Known Limitations
 
@@ -296,6 +297,49 @@ json_val: Set(json!(42))
 
 // Use:
 json_val: Set(json!({"value": 42}))
+```
+
+#### ARRAY Types
+
+Spanner ARRAY types are supported for the following element types:
+- `ARRAY<INT64>` → `Vec<i64>`
+- `ARRAY<FLOAT64>` → `Vec<f64>`
+- `ARRAY<STRING>` → `Vec<String>`
+- `ARRAY<BOOL>` → `Vec<bool>`
+
+Example entity:
+
+```rust
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+#[sea_orm(table_name = "my_table")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub id: String,
+    pub tags: Vec<String>,              // ARRAY<STRING(MAX)>
+    pub scores: Vec<i64>,               // ARRAY<INT64>
+    pub optional_flags: Option<Vec<bool>>, // ARRAY<BOOL> nullable
+}
+```
+
+#### NUMERIC Type
+
+Spanner NUMERIC type is supported via `rust_decimal::Decimal`. NUMERIC provides 38 digits of precision with 9 decimal places.
+
+Example entity:
+
+```rust
+use rust_decimal::Decimal;
+
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+#[sea_orm(table_name = "products")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub id: String,
+    #[sea_orm(column_type = "Decimal(Some((38, 9)))")]
+    pub price: Decimal,
+    #[sea_orm(column_type = "Decimal(Some((38, 9)))", nullable)]
+    pub discount: Option<Decimal>,
+}
 ```
 
 ## License

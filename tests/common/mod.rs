@@ -76,9 +76,14 @@ const ALL_DDL: &[&str] = &[
         bool_array ARRAY<BOOL> NOT NULL,
         bool_array_nullable ARRAY<BOOL>,
     ) PRIMARY KEY (id)",
+    "CREATE TABLE numeric_types (
+        id STRING(36) NOT NULL,
+        numeric_val NUMERIC NOT NULL,
+        numeric_nullable NUMERIC,
+    ) PRIMARY KEY (id)",
 ];
 
-const ALL_TABLES: &[&str] = &["users", "posts", "categories", "products", "all_types", "array_types"];
+const ALL_TABLES: &[&str] = &["users", "posts", "categories", "products", "all_types", "array_types", "numeric_types"];
 
 pub async fn setup_test_database() -> DatabaseConnection {
     if std::env::var("SPANNER_EMULATOR_HOST").is_err() {

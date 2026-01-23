@@ -17,7 +17,7 @@ name = "sea_orm_spanner"
 path = "src/lib.rs"
 
 [features]
-default = ["with-chrono", "with-uuid", "with-json", "with-array"]
+default = ["with-chrono", "with-uuid", "with-json", "with-array", "with-rust_decimal"]
 with-array = ["sea-query-spanner/with-array", "sea-orm/postgres-array"]
 with-chrono = ["sea-query-spanner/with-chrono", "sea-orm/with-chrono", "chrono"]
 with-uuid = ["sea-query-spanner/with-uuid", "sea-orm/with-uuid", "uuid"]
@@ -66,8 +66,11 @@ sea-orm = { version = "1.1", features = [
     "with-chrono",
     "with-uuid",
     "with-json",
+    "with-rust_decimal",
     "postgres-array",
     "runtime-tokio-native-tls",
 ] }
+rust_decimal = { version = "1", features = ["serde"] }
+rust_decimal_macros = "1"
 serde_json = "1"
 serial_test = "3.3.1"
