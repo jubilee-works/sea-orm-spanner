@@ -170,9 +170,11 @@ impl SpannerProxy {
             Value::Uuid(None) => stmt.add_param(param_name, &crate::uuid_support::SpannerOptionalUuid::none()),
 
             #[cfg(feature = "with-json")]
-            Value::Json(Some(v)) => stmt.add_param(param_name, &v.to_string()),
+            Value::Json(Some(v)) => {
+                stmt.add_param(param_name, &crate::json_support::SpannerOptionalJson::some(v.as_ref().clone()))
+            }
             #[cfg(feature = "with-json")]
-            Value::Json(None) => stmt.add_param(param_name, &Option::<String>::None),
+            Value::Json(None) => stmt.add_param(param_name, &crate::json_support::SpannerOptionalJson::none()),
 
             #[cfg(feature = "with-rust_decimal")]
             Value::Decimal(Some(v)) => stmt.add_param(param_name, &v.to_string()),
@@ -216,17 +218,29 @@ impl SpannerProxy {
         if let Ok(v) = row.column::<Option<chrono::DateTime<chrono::Utc>>>(idx) {
             return Value::ChronoDateTimeUtc(v.map(Box::new));
         }
-        if let Ok(v) = row.column::<Option<String>>(idx) {
-            #[cfg(feature = "with-uuid")]
-            if let Some(ref s) = v {
-                if let Ok(uuid) = uuid::Uuid::parse_str(s) {
-                    return Value::Uuid(Some(Box::new(uuid)));
+        if let Ok(str_val) = row.column::<Option<String>>(idx) {
+            if let Some(ref s) = str_val {                
+                #[cfg(feature = "with-json")]
+                if let Ok(json) = serde_json::from_str::<serde_json::Value>(s) {
+                    return Value::Json(Some(Box::new(json)));
+                }
+                
+                let has_base64_special_chars = s.contains('+') || s.contains('/') || s.contains('=');
+                let is_base64_format = s.len() % 4 == 0 
+                    && s.chars().all(|c| c.is_ascii_alphanumeric() || c == '+' || c == '/' || c == '=');
+                
+                if has_base64_special_chars && is_base64_format {
+                    if let Ok(Some(bytes)) = row.column::<Option<Vec<u8>>>(idx) {
+                        if std::str::from_utf8(&bytes).is_err() || bytes.contains(&0) {
+                            return Value::Bytes(Some(Box::new(bytes)));
+                        }
+                    }
                 }
             }
-            return Value::String(v.map(Box::new));
+            return Value::String(str_val.map(Box::new));
         }
-        if let Ok(v) = row.column::<Option<Vec<u8>>>(idx) {
-            return Value::Bytes(v.map(Box::new));
+        if let Ok(bytes) = row.column::<Option<Vec<u8>>>(idx) {
+            return Value::Bytes(bytes.map(Box::new));
         }
 
         tracing::warn!("Unknown column type for {}, returning null", column_name);

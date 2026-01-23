@@ -28,7 +28,7 @@ mod insert_tests {
         };
 
         let result = new_user.insert(&db).await;
-        assert!(result.is_ok());
+        assert!(result.is_ok(), "Insert failed: {:?}", result.err());
 
         let inserted = result.unwrap();
         assert_eq!(inserted.name, "Alice");

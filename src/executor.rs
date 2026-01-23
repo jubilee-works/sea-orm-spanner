@@ -170,9 +170,11 @@ impl SpannerExecutor {
             Value::Uuid(None) => stmt.add_param(param_name, &Option::<String>::None),
             
             #[cfg(feature = "with-json")]
-            Value::Json(Some(v)) => stmt.add_param(param_name, &v.to_string()),
+            Value::Json(Some(v)) => {
+                stmt.add_param(param_name, &crate::json_support::SpannerOptionalJson::some(v.as_ref().clone()))
+            }
             #[cfg(feature = "with-json")]
-            Value::Json(None) => stmt.add_param(param_name, &Option::<String>::None),
+            Value::Json(None) => stmt.add_param(param_name, &crate::json_support::SpannerOptionalJson::none()),
             
             #[cfg(feature = "with-rust_decimal")]
             Value::Decimal(Some(v)) => {

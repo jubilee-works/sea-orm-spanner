@@ -1,11 +1,15 @@
 mod database;
 mod error;
+#[cfg(feature = "with-json")]
+pub mod json_support;
 mod proxy;
 #[cfg(feature = "with-uuid")]
 pub mod uuid_support;
 
 pub use database::SpannerDatabase;
 pub use error::SpannerDbErr;
+#[cfg(feature = "with-json")]
+pub use json_support::{SpannerJson, SpannerOptionalJson};
 #[cfg(feature = "with-uuid")]
 pub use uuid_support::SpannerUuid;
 

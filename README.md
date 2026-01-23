@@ -244,6 +244,60 @@ SeaORM's `DbBackend` determines SQL generation behavior. Spanner doesn't support
 - `with-json` - JSON support
 - `with-rust_decimal` - Decimal support
 
+## Known Limitations
+
+### Type Mapping
+
+Spanner has a limited set of native types compared to other databases. This library maps SeaORM types to Spanner types with the following considerations:
+
+#### Integer Types
+
+Spanner only has `INT64`. When reading values:
+- Values in i32 range (-2147483648 to 2147483647) are returned as `i32`
+- Values outside i32 range are returned as `i64`
+
+**Recommendation**: Use `i32` for entity fields that will always contain small values. Use `i64` with values outside i32 range to ensure correct type mapping.
+
+```rust
+pub struct Model {
+    pub small_count: i32,      // For values that fit in i32
+    pub large_id: i64,         // Use values > i32::MAX or < i32::MIN
+}
+```
+
+#### Float Types
+
+Spanner only has `FLOAT64`. Use `f64` in your entities, not `f32`.
+
+```rust
+pub struct Model {
+    pub price: f64,            // Correct: use f64
+    // pub price: f32,         // Avoid: will cause type mismatch
+}
+```
+
+#### BYTES vs STRING
+
+Both BYTES and STRING columns are transmitted as strings (BYTES are base64-encoded). The library uses heuristics to distinguish them:
+- Strings containing base64 special characters (`+`, `/`, `=`) that decode to non-UTF8 or null bytes are treated as BYTES
+- Empty strings cannot be distinguished and are treated as STRING
+
+**Recommendation**: Avoid storing empty byte arrays. Use at least one byte (e.g., `vec![0]`) for BYTES columns that need to represent "empty".
+
+#### JSON Primitives
+
+JSON columns containing simple numeric values (e.g., `42`, `3.14`) cannot be distinguished from INT64/FLOAT64 columns at read time. This limitation affects JSON columns storing primitive numbers.
+
+**Recommendation**: Wrap JSON primitives in objects or arrays:
+
+```rust
+// Instead of:
+json_val: Set(json!(42))
+
+// Use:
+json_val: Set(json!({"value": 42}))
+```
+
 ## License
 
 MIT OR Apache-2.0
