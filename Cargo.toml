@@ -8,7 +8,7 @@ version = "0.1.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 rust-version = "1.75"
-repository = "https://github.com/jubilee-works/sea-spanner"
+repository = "https://github.com/jubilee-works/sea-orm-spanner"
 keywords = ["spanner", "sea-orm", "orm", "database", "google-cloud"]
 categories = ["database"]
 
@@ -21,7 +21,11 @@ default = ["with-chrono", "with-uuid"]
 with-chrono = ["sea-query-spanner/with-chrono", "sea-orm/with-chrono", "chrono"]
 with-uuid = ["sea-query-spanner/with-uuid", "sea-orm/with-uuid", "uuid"]
 with-json = ["sea-query-spanner/with-json", "sea-orm/with-json", "serde_json"]
-with-rust_decimal = ["sea-query-spanner/with-rust_decimal", "sea-orm/with-rust_decimal", "rust_decimal"]
+with-rust_decimal = [
+    "sea-query-spanner/with-rust_decimal",
+    "sea-orm/with-rust_decimal",
+    "rust_decimal",
+]
 
 [dependencies]
 sea-orm = { version = "1.1", default-features = false, features = ["proxy"] }
@@ -52,5 +56,11 @@ chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 google-cloud-spanner = "0.12"
 google-cloud-googleapis = { version = "0.6.0", features = ["spanner"] }
-sea-orm = { version = "1.1", features = ["proxy", "macros", "with-chrono", "with-uuid", "runtime-tokio-native-tls"] }
+sea-orm = { version = "1.1", features = [
+    "proxy",
+    "macros",
+    "with-chrono",
+    "with-uuid",
+    "runtime-tokio-native-tls",
+] }
 serial_test = "3.3.1"

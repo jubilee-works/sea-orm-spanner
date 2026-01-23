@@ -8,7 +8,7 @@ edition = "2021"
 description = "Migration utility for SeaORM Spanner"
 license = "MIT OR Apache-2.0"
 rust-version = "1.75"
-repository = "https://github.com/jubilee-works/sea-spanner"
+repository = "https://github.com/jubilee-works/sea-orm-spanner"
 keywords = ["spanner", "sea-orm", "migration", "database", "google-cloud"]
 categories = ["database"]
 
