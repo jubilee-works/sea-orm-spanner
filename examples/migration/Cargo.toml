@@ -1,7 +1,18 @@
+[workspace]
+
 [package]
 name = "migration"
 version = "0.1.0"
 edition = "2021"
+publish = false
+
+[[bin]]
+name = "migration"
+path = "src/main.rs"
+
+[lib]
+name = "migration"
+path = "src/lib.rs"
 
 [dependencies]
 sea-orm-migration-spanner = { path = "../../sea-orm-migration-spanner" }

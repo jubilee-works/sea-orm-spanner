@@ -1,13 +1,13 @@
 [package]
 name = "sea-query-spanner"
 description = "Spanner SQL dialect for sea-query"
-version.workspace = true
-edition.workspace = true
-license.workspace = true
-rust-version.workspace = true
-repository.workspace = true
-keywords.workspace = true
-categories.workspace = true
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+rust-version = "1.75"
+repository = "https://github.com/jubilee-works/sea-spanner"
+keywords = ["spanner", "sea-query", "sql", "database", "google-cloud"]
+categories = ["database"]
 
 [features]
 default = []
@@ -17,11 +17,11 @@ with-json = ["sea-query/with-json", "serde_json"]
 with-rust_decimal = ["sea-query/with-rust_decimal", "rust_decimal"]
 
 [dependencies]
-sea-query.workspace = true
-chrono = { workspace = true, optional = true }
-uuid = { workspace = true, optional = true }
-rust_decimal = { workspace = true, optional = true }
-serde_json = { workspace = true, optional = true }
+sea-query = { version = "0.32", default-features = false }
+chrono = { version = "0.4", features = ["serde"], optional = true }
+uuid = { version = "1", features = ["v4", "serde"], optional = true }
+rust_decimal = { version = "1", features = ["serde"], optional = true }
+serde_json = { version = "1", optional = true }
 
 [dev-dependencies]
-tokio.workspace = true
+tokio = { version = "1", features = ["full"] }

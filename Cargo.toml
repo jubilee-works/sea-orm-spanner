@@ -1,14 +1,9 @@
 [workspace]
-resolver = "2"
-members = [
-    "sea-query-spanner",
-    "sea-orm-spanner",
-    "sea-orm-migration-spanner",
-    "examples/basic-crud",
-    "examples/migration",
-]
+members = [".", "sea-query-spanner"]
 
-[workspace.package]
+[package]
+name = "sea-orm-spanner"
+description = "Google Cloud Spanner backend for SeaORM"
 version = "0.1.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
@@ -17,32 +12,45 @@ repository = "https://github.com/jubilee-works/sea-spanner"
 keywords = ["spanner", "sea-orm", "orm", "database", "google-cloud"]
 categories = ["database"]
 
-[workspace.dependencies]
-# Core
-sea-orm = { version = "1.1", default-features = false }
+[lib]
+name = "sea_orm_spanner"
+path = "src/lib.rs"
+
+[features]
+default = ["with-chrono", "with-uuid"]
+with-chrono = ["sea-query-spanner/with-chrono", "sea-orm/with-chrono", "chrono"]
+with-uuid = ["sea-query-spanner/with-uuid", "sea-orm/with-uuid", "uuid"]
+with-json = ["sea-query-spanner/with-json", "sea-orm/with-json", "serde_json"]
+with-rust_decimal = ["sea-query-spanner/with-rust_decimal", "sea-orm/with-rust_decimal", "rust_decimal"]
+
+[dependencies]
+sea-orm = { version = "1.1", default-features = false, features = ["proxy"] }
 sea-query = { version = "0.32", default-features = false }
+sea-query-spanner = { path = "sea-query-spanner" }
 
-# Spanner
 google-cloud-spanner = "0.12"
+google-cloud-gax = { version = "0.9.1", default-features = false }
 
-# Async
-tokio = { version = "1", features = ["full"] }
 async-trait = "0.1"
+tokio = { version = "1", features = ["full"] }
+futures = "0.3"
+tonic = "0.12"
 
-# Serialization
+chrono = { version = "0.4", features = ["serde"], optional = true }
+uuid = { version = "1", features = ["v4", "serde"], optional = true }
+rust_decimal = { version = "1", features = ["serde"], optional = true }
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+serde_json = { version = "1", optional = true }
 
-# Types
-chrono = { version = "0.4", features = ["serde"] }
-uuid = { version = "1", features = ["v4", "serde"] }
-rust_decimal = { version = "1", features = ["serde"] }
-
-# Error handling
 thiserror = "2"
-
-# Logging
 tracing = "0.1"
 
-# Testing
+[dev-dependencies]
 tokio-test = "0.4"
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+google-cloud-spanner = "0.12"
+google-cloud-googleapis = { version = "0.6.0", features = ["spanner"] }
+sea-orm = { version = "1.1", features = ["proxy", "macros", "with-chrono", "with-uuid", "runtime-tokio-native-tls"] }
+serial_test = "3.3.1"
