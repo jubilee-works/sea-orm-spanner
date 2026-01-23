@@ -63,7 +63,7 @@ pub fn value_to_spanner_literal(value: &Value) -> String {
         #[cfg(feature = "with-chrono")]
         Value::ChronoDateTimeWithTimeZone(None) => "NULL".to_string(),
         #[cfg(feature = "with-uuid")]
-        Value::Uuid(Some(u)) => escape_string(&u.to_string()),
+        Value::Uuid(Some(u)) => format!("'{}'", u.hyphenated().to_string()),
         #[cfg(feature = "with-uuid")]
         Value::Uuid(None) => "NULL".to_string(),
         #[cfg(feature = "with-json")]

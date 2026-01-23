@@ -165,9 +165,9 @@ impl SpannerProxy {
             }
 
             #[cfg(feature = "with-uuid")]
-            Value::Uuid(Some(v)) => stmt.add_param(param_name, &v.to_string()),
+            Value::Uuid(Some(v)) => stmt.add_param(param_name, &crate::SpannerUuid::from(*v.as_ref())),
             #[cfg(feature = "with-uuid")]
-            Value::Uuid(None) => stmt.add_param(param_name, &Option::<String>::None),
+            Value::Uuid(None) => stmt.add_param(param_name, &crate::uuid_support::SpannerOptionalUuid::none()),
 
             #[cfg(feature = "with-json")]
             Value::Json(Some(v)) => stmt.add_param(param_name, &v.to_string()),

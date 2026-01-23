@@ -27,7 +27,7 @@ pub fn spanner_type_name(col_type: &ColumnType) -> String {
         ColumnType::Bit(_) => "BYTES(MAX)".to_string(),
         ColumnType::Boolean => "BOOL".to_string(),
         ColumnType::Json | ColumnType::JsonBinary => "JSON".to_string(),
-        ColumnType::Uuid => "STRING(36)".to_string(),
+        ColumnType::Uuid => "UUID".to_string(),
         ColumnType::Array(inner) => format!("ARRAY<{}>", spanner_type_name(inner)),
         ColumnType::Cidr | ColumnType::Inet | ColumnType::MacAddr => "STRING(MAX)".to_string(),
         ColumnType::LTree => "STRING(MAX)".to_string(),
