@@ -83,8 +83,8 @@ const ALL_DDL: &[&str] = &[
     ) PRIMARY KEY (id)",
     "CREATE TABLE uuid_types (
         id STRING(36) NOT NULL,
-        uuid_val STRING(36) NOT NULL,
-        uuid_nullable STRING(36),
+        uuid_val UUID NOT NULL,
+        uuid_nullable UUID,
     ) PRIMARY KEY (id)",
 ];
 

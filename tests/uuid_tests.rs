@@ -13,13 +13,13 @@ async fn test_uuid_insert_and_select() {
     let db = setup_test_database().await;
 
     let id = Uuid::new_v4().to_string();
-    let uuid_val = Uuid::new_v4().to_string();
-    let uuid_nullable = Some(Uuid::new_v4().to_string());
+    let uuid_val = Uuid::new_v4();
+    let uuid_nullable = Some(Uuid::new_v4());
 
     let model = uuid_types::ActiveModel {
         id: Set(id.clone()),
-        uuid_val: Set(uuid_val.clone()),
-        uuid_nullable: Set(uuid_nullable.clone()),
+        uuid_val: Set(uuid_val),
+        uuid_nullable: Set(uuid_nullable),
     };
 
     model.insert(&db).await.expect("Failed to insert");
@@ -40,11 +40,11 @@ async fn test_uuid_nullable_null() {
     let db = setup_test_database().await;
 
     let id = Uuid::new_v4().to_string();
-    let uuid_val = Uuid::new_v4().to_string();
+    let uuid_val = Uuid::new_v4();
 
     let model = uuid_types::ActiveModel {
         id: Set(id.clone()),
-        uuid_val: Set(uuid_val.clone()),
+        uuid_val: Set(uuid_val),
         uuid_nullable: Set(None),
     };
 
@@ -66,8 +66,8 @@ async fn test_uuid_update() {
     let db = setup_test_database().await;
 
     let id = Uuid::new_v4().to_string();
-    let original_uuid = Uuid::new_v4().to_string();
-    let updated_uuid = Uuid::new_v4().to_string();
+    let original_uuid = Uuid::new_v4();
+    let updated_uuid = Uuid::new_v4();
 
     let model = uuid_types::ActiveModel {
         id: Set(id.clone()),
@@ -84,8 +84,8 @@ async fn test_uuid_update() {
         .expect("Not found")
         .into();
 
-    active.uuid_val = Set(updated_uuid.clone());
-    active.uuid_nullable = Set(Some(Uuid::new_v4().to_string()));
+    active.uuid_val = Set(updated_uuid);
+    active.uuid_nullable = Set(Some(Uuid::new_v4()));
     active.update(&db).await.expect("Failed to update");
 
     let result = uuid_types::Entity::find_by_id(&id)
@@ -104,11 +104,11 @@ async fn test_uuid_specific_value() {
     let db = setup_test_database().await;
 
     let id = Uuid::new_v4().to_string();
-    let specific_uuid = "550e8400-e29b-41d4-a716-446655440000".to_string();
+    let specific_uuid = Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap();
 
     let model = uuid_types::ActiveModel {
         id: Set(id.clone()),
-        uuid_val: Set(specific_uuid.clone()),
+        uuid_val: Set(specific_uuid),
         uuid_nullable: Set(None),
     };
 
@@ -125,15 +125,15 @@ async fn test_uuid_specific_value() {
 
 #[tokio::test]
 #[serial]
-async fn test_uuid_parsing() {
+async fn test_uuid_roundtrip() {
     let db = setup_test_database().await;
 
     let id = Uuid::new_v4().to_string();
-    let uuid_val = Uuid::new_v4().to_string();
+    let uuid_val = Uuid::new_v4();
 
     let model = uuid_types::ActiveModel {
         id: Set(id.clone()),
-        uuid_val: Set(uuid_val.clone()),
+        uuid_val: Set(uuid_val),
         uuid_nullable: Set(None),
     };
 
@@ -145,6 +145,6 @@ async fn test_uuid_parsing() {
         .expect("Failed to query")
         .expect("Not found");
 
-    let parsed = Uuid::parse_str(&result.uuid_val).expect("Should be valid UUID");
-    assert_eq!(parsed.to_string(), uuid_val);
+    assert_eq!(result.uuid_val, uuid_val);
+    assert_eq!(result.uuid_val.to_string(), uuid_val.to_string());
 }

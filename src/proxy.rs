@@ -174,9 +174,9 @@ impl SpannerProxy {
             }
 
             #[cfg(feature = "with-uuid")]
-            Value::Uuid(Some(v)) => stmt.add_param(param_name, &crate::SpannerUuid::from(*v.as_ref())),
+            Value::Uuid(Some(v)) => stmt.add_param(param_name, v.as_ref()),
             #[cfg(feature = "with-uuid")]
-            Value::Uuid(None) => stmt.add_param(param_name, &crate::uuid_support::SpannerOptionalUuid::none()),
+            Value::Uuid(None) => stmt.add_param(param_name, &Option::<uuid::Uuid>::None),
 
             #[cfg(feature = "with-json")]
             Value::Json(Some(v)) => {
@@ -449,6 +449,10 @@ impl SpannerProxy {
                 return Value::ChronoDateTimeUtc(Some(Box::new(chrono_dt)));
             }
             return Value::ChronoDateTimeUtc(None);
+        }
+        #[cfg(feature = "with-uuid")]
+        if let Ok(v) = row.column::<Option<uuid::Uuid>>(idx) {
+            return Value::Uuid(v.map(Box::new));
         }
         if let Ok(str_val) = row.column::<Option<String>>(idx) {
             if let Some(ref s) = str_val {

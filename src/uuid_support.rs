@@ -33,7 +33,7 @@ impl ToKind for SpannerUuid {
     }
 
     fn get_type() -> gcloud_googleapis::spanner::v1::Type {
-        single_type(TypeCode::String)
+        single_type(TypeCode::Uuid)
     }
 }
 
@@ -65,6 +65,6 @@ impl ToKind for SpannerOptionalUuid {
     }
 
     fn get_type() -> gcloud_googleapis::spanner::v1::Type {
-        single_type(TypeCode::String)
+        single_type(TypeCode::Uuid)
     }
 }

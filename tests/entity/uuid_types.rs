@@ -5,8 +5,8 @@ use sea_orm::entity::prelude::*;
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: String,
-    pub uuid_val: String,
-    pub uuid_nullable: Option<String>,
+    pub uuid_val: Uuid,
+    pub uuid_nullable: Option<Uuid>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
