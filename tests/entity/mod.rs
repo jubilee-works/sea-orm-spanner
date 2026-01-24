@@ -5,3 +5,4 @@ pub mod numeric_types;
 pub mod post;
 pub mod product;
 pub mod user;
+pub mod uuid_types;

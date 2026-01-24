@@ -1,18 +1,7 @@
-//! UUID support for Google Cloud Spanner native UUID type.
-//!
-//! This module provides a wrapper type and ToKind implementation
-//! for using Spanner's native UUID type instead of STRING(36).
-
-use gcloud_googleapis::spanner::v1::{Type, TypeAnnotationCode};
-use gcloud_spanner::statement::ToKind;
+use gcloud_googleapis::spanner::v1::TypeCode;
+use gcloud_spanner::statement::{single_type, ToKind};
 use prost_types::value::Kind;
 
-const TYPE_CODE_UUID: i32 = 17;
-
-/// Wrapper type for uuid::Uuid that implements ToKind for Spanner's native UUID type.
-///
-/// Spanner's UUID type is encoded as a lowercase hexadecimal string
-/// as described in RFC 9562, section 4.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SpannerUuid(pub uuid::Uuid);
 
@@ -43,17 +32,8 @@ impl ToKind for SpannerUuid {
         Kind::StringValue(self.0.hyphenated().to_string())
     }
 
-    fn get_type() -> Type
-    where
-        Self: Sized,
-    {
-        Type {
-            code: TYPE_CODE_UUID,
-            array_element_type: None,
-            struct_type: None,
-            type_annotation: TypeAnnotationCode::Unspecified.into(),
-            proto_type_fqn: String::new(),
-        }
+    fn get_type() -> gcloud_googleapis::spanner::v1::Type {
+        single_type(TypeCode::String)
     }
 }
 
@@ -84,10 +64,7 @@ impl ToKind for SpannerOptionalUuid {
         }
     }
 
-    fn get_type() -> Type
-    where
-        Self: Sized,
-    {
-        SpannerUuid::get_type()
+    fn get_type() -> gcloud_googleapis::spanner::v1::Type {
+        single_type(TypeCode::String)
     }
 }
