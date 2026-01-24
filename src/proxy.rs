@@ -2,7 +2,7 @@ use crate::array_support::*;
 use crate::error::SpannerDbErr;
 use async_trait::async_trait;
 use google_cloud_spanner::client::Client;
-use google_cloud_spanner::reader::AsyncIterator;
+
 use google_cloud_spanner::statement::Statement as SpannerStatement;
 use sea_orm::ProxyDatabaseTrait;
 use sea_orm::ProxyExecResult;
@@ -141,28 +141,36 @@ impl SpannerProxy {
             #[cfg(feature = "with-chrono")]
             Value::ChronoTime(None) => stmt.add_param(param_name, &Option::<String>::None),
             #[cfg(feature = "with-chrono")]
-            Value::ChronoDateTime(Some(v)) => stmt.add_param(param_name, &v.and_utc()),
+            Value::ChronoDateTime(Some(v)) => {
+                stmt.add_param(param_name, &crate::chrono_support::SpannerNaiveDateTime::new(**v))
+            }
             #[cfg(feature = "with-chrono")]
             Value::ChronoDateTime(None) => {
-                stmt.add_param(param_name, &Option::<chrono::DateTime<chrono::Utc>>::None)
+                stmt.add_param(param_name, &crate::chrono_support::SpannerOptionalNaiveDateTime::none())
             }
             #[cfg(feature = "with-chrono")]
-            Value::ChronoDateTimeUtc(Some(v)) => stmt.add_param(param_name, v.as_ref()),
+            Value::ChronoDateTimeUtc(Some(v)) => {
+                stmt.add_param(param_name, &crate::chrono_support::SpannerTimestamp::new(*v.as_ref()))
+            }
             #[cfg(feature = "with-chrono")]
             Value::ChronoDateTimeUtc(None) => {
-                stmt.add_param(param_name, &Option::<chrono::DateTime<chrono::Utc>>::None)
+                stmt.add_param(param_name, &crate::chrono_support::SpannerOptionalTimestamp::none())
             }
             #[cfg(feature = "with-chrono")]
-            Value::ChronoDateTimeLocal(Some(v)) => stmt.add_param(param_name, &v.to_utc()),
+            Value::ChronoDateTimeLocal(Some(v)) => {
+                stmt.add_param(param_name, &crate::chrono_support::SpannerTimestamp::new(v.to_utc()))
+            }
             #[cfg(feature = "with-chrono")]
             Value::ChronoDateTimeLocal(None) => {
-                stmt.add_param(param_name, &Option::<chrono::DateTime<chrono::Utc>>::None)
+                stmt.add_param(param_name, &crate::chrono_support::SpannerOptionalTimestamp::none())
             }
             #[cfg(feature = "with-chrono")]
-            Value::ChronoDateTimeWithTimeZone(Some(v)) => stmt.add_param(param_name, &v.to_utc()),
+            Value::ChronoDateTimeWithTimeZone(Some(v)) => {
+                stmt.add_param(param_name, &crate::chrono_support::SpannerTimestamp::new(v.to_utc()))
+            }
             #[cfg(feature = "with-chrono")]
             Value::ChronoDateTimeWithTimeZone(None) => {
-                stmt.add_param(param_name, &Option::<chrono::DateTime<chrono::Utc>>::None)
+                stmt.add_param(param_name, &crate::chrono_support::SpannerOptionalTimestamp::none())
             }
 
             #[cfg(feature = "with-uuid")]
@@ -178,9 +186,18 @@ impl SpannerProxy {
             Value::Json(None) => stmt.add_param(param_name, &crate::json_support::SpannerOptionalJson::none()),
 
             #[cfg(feature = "with-rust_decimal")]
-            Value::Decimal(Some(v)) => stmt.add_param(param_name, &google_cloud_spanner::value::SpannerNumeric::new(&v.to_string())),
+            Value::Decimal(Some(v)) => {
+                use std::str::FromStr;
+                let big_decimal = google_cloud_spanner::bigdecimal::BigDecimal::from_str(&v.to_string())
+                    .map_err(|e| SpannerDbErr::TypeConversion {
+                        column: param_name.to_string(),
+                        expected: "BigDecimal".to_string(),
+                        got: format!("{}: {}", v, e),
+                    })?;
+                stmt.add_param(param_name, &big_decimal);
+            }
             #[cfg(feature = "with-rust_decimal")]
-            Value::Decimal(None) => stmt.add_param(param_name, &Option::<google_cloud_spanner::value::SpannerNumeric>::None),
+            Value::Decimal(None) => stmt.add_param(param_name, &Option::<google_cloud_spanner::bigdecimal::BigDecimal>::None),
 
             Value::Array(array_type, Some(values)) => {
                 self.bind_array(stmt, param_name, array_type, values)?;
@@ -413,8 +430,8 @@ impl SpannerProxy {
             return Value::BigInt(v);
         }
         #[cfg(feature = "with-rust_decimal")]
-        if let Ok(Some(numeric)) = row.column::<Option<google_cloud_spanner::value::SpannerNumeric>>(idx) {
-            if let Ok(decimal) = rust_decimal::Decimal::from_str_exact(numeric.as_str()) {
+        if let Ok(Some(big_decimal)) = row.column::<Option<google_cloud_spanner::bigdecimal::BigDecimal>>(idx) {
+            if let Ok(decimal) = rust_decimal::Decimal::from_str_exact(&big_decimal.to_string()) {
                 return Value::Decimal(Some(Box::new(decimal)));
             }
         }
@@ -422,8 +439,16 @@ impl SpannerProxy {
             return Value::Double(v);
         }
         #[cfg(feature = "with-chrono")]
-        if let Ok(v) = row.column::<Option<chrono::DateTime<chrono::Utc>>>(idx) {
-            return Value::ChronoDateTimeUtc(v.map(Box::new));
+        if let Ok(v) = row.column::<Option<time::OffsetDateTime>>(idx) {
+            if let Some(odt) = v {
+                let chrono_dt = chrono::DateTime::from_timestamp(
+                    odt.unix_timestamp(),
+                    odt.nanosecond(),
+                )
+                .unwrap_or_else(|| chrono::DateTime::UNIX_EPOCH);
+                return Value::ChronoDateTimeUtc(Some(Box::new(chrono_dt)));
+            }
+            return Value::ChronoDateTimeUtc(None);
         }
         if let Ok(str_val) = row.column::<Option<String>>(idx) {
             if let Some(ref s) = str_val {
@@ -567,12 +592,12 @@ impl ProxyDatabaseTrait for SpannerProxy {
 
         let result = self
             .client
-            .read_write_transaction(|tx, _cancel| {
+            .read_write_transaction(|tx| {
                 let stmt = spanner_stmt.clone();
                 Box::pin(async move { tx.update(stmt).await.map_err(SpannerTxError::from) })
             })
             .await
-            .map_err(|e| SpannerDbErr::Execution(e.to_string()))?;
+            .map_err(|e: crate::error::SpannerTxError| SpannerDbErr::Execution(e.to_string()))?;
 
         Ok(ProxyExecResult {
             last_insert_id: 0,

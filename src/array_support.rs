@@ -25,9 +25,11 @@ impl ToKind for SpannerInt64Array {
                 array_element_type: None,
                 struct_type: None,
                 type_annotation: TypeAnnotationCode::Unspecified.into(),
+                proto_type_fqn: String::new(),
             })),
             struct_type: None,
             type_annotation: TypeAnnotationCode::Unspecified.into(),
+            proto_type_fqn: String::new(),
         }
     }
 }
@@ -80,9 +82,11 @@ impl ToKind for SpannerFloat64Array {
                 array_element_type: None,
                 struct_type: None,
                 type_annotation: TypeAnnotationCode::Unspecified.into(),
+                proto_type_fqn: String::new(),
             })),
             struct_type: None,
             type_annotation: TypeAnnotationCode::Unspecified.into(),
+            proto_type_fqn: String::new(),
         }
     }
 }
@@ -135,9 +139,11 @@ impl ToKind for SpannerStringArray {
                 array_element_type: None,
                 struct_type: None,
                 type_annotation: TypeAnnotationCode::Unspecified.into(),
+                proto_type_fqn: String::new(),
             })),
             struct_type: None,
             type_annotation: TypeAnnotationCode::Unspecified.into(),
+            proto_type_fqn: String::new(),
         }
     }
 }
@@ -190,9 +196,11 @@ impl ToKind for SpannerBoolArray {
                 array_element_type: None,
                 struct_type: None,
                 type_annotation: TypeAnnotationCode::Unspecified.into(),
+                proto_type_fqn: String::new(),
             })),
             struct_type: None,
             type_annotation: TypeAnnotationCode::Unspecified.into(),
+            proto_type_fqn: String::new(),
         }
     }
 }
@@ -245,9 +253,11 @@ impl ToKind for SpannerBytesArray {
                 array_element_type: None,
                 struct_type: None,
                 type_annotation: TypeAnnotationCode::Unspecified.into(),
+                proto_type_fqn: String::new(),
             })),
             struct_type: None,
             type_annotation: TypeAnnotationCode::Unspecified.into(),
+            proto_type_fqn: String::new(),
         }
     }
 }

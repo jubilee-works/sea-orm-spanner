@@ -52,6 +52,7 @@ impl ToKind for SpannerUuid {
             array_element_type: None,
             struct_type: None,
             type_annotation: TypeAnnotationCode::Unspecified.into(),
+            proto_type_fqn: String::new(),
         }
     }
 }

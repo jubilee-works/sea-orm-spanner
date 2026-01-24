@@ -2,8 +2,8 @@ use google_cloud_googleapis::spanner::admin::database::v1::{
     CreateDatabaseRequest, DatabaseDialect, UpdateDatabaseDdlRequest,
 };
 use google_cloud_googleapis::spanner::admin::instance::v1::{CreateInstanceRequest, Instance};
-use google_cloud_spanner::admin::database::database_admin_client::DatabaseAdminClient;
-use google_cloud_spanner::admin::instance::instance_admin_client::InstanceAdminClient;
+use google_cloud_spanner::admin::client::Client as AdminClient;
+use google_cloud_spanner::admin::AdminClientConfig;
 use sea_orm::{ConnectionTrait, DatabaseConnection, Statement};
 use sea_orm_spanner::SpannerDatabase;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -116,8 +116,9 @@ async fn setup_instance() -> Result<(), Box<dyn std::error::Error>> {
     let project_path = format!("projects/{}", PROJECT);
     let instance_path = format!("{}/instances/{}", project_path, INSTANCE);
 
-    let mut instance_client = InstanceAdminClient::default().await?;
-    let result = instance_client
+    let admin_client = AdminClient::new(AdminClientConfig::default()).await?;
+    let result = admin_client
+        .instance()
         .create_instance(
             CreateInstanceRequest {
                 parent: project_path,
@@ -130,12 +131,11 @@ async fn setup_instance() -> Result<(), Box<dyn std::error::Error>> {
                 }),
             },
             None,
-            None,
         )
         .await;
 
     if let Ok(mut op) = result {
-        let _ = op.wait(None, None).await;
+        let _ = op.wait(None).await;
     }
 
     Ok(())
@@ -144,8 +144,9 @@ async fn setup_instance() -> Result<(), Box<dyn std::error::Error>> {
 async fn ensure_database_exists() -> Result<(), Box<dyn std::error::Error>> {
     let instance_path = format!("projects/{}/instances/{}", PROJECT, INSTANCE);
 
-    let db_client = DatabaseAdminClient::default().await?;
-    let result = db_client
+    let admin_client = AdminClient::new(AdminClientConfig::default()).await?;
+    let result = admin_client
+        .database()
         .create_database(
             CreateDatabaseRequest {
                 parent: instance_path,
@@ -153,15 +154,15 @@ async fn ensure_database_exists() -> Result<(), Box<dyn std::error::Error>> {
                 extra_statements: vec![],
                 encryption_config: None,
                 database_dialect: DatabaseDialect::GoogleStandardSql.into(),
+                proto_descriptors: vec![],
             },
-            None,
             None,
         )
         .await;
 
     match result {
         Ok(mut op) => {
-            let _ = op.wait(None, None).await;
+            let _ = op.wait(None).await;
         }
         Err(e) => {
             let err_str = e.to_string();
@@ -178,28 +179,27 @@ async fn ensure_tables_exist() {
     let instance_path = format!("projects/{}/instances/{}", PROJECT, INSTANCE);
     let database_path = format!("{}/databases/{}", instance_path, DATABASE);
 
-    let db_client = DatabaseAdminClient::default()
+    let admin_client = AdminClient::new(AdminClientConfig::default())
         .await
         .expect("Failed to create admin client");
 
-    // Try to create each table individually, ignoring "already exists" errors
     for ddl in ALL_DDL {
-        let result = db_client
+        let result = admin_client
+            .database()
             .update_database_ddl(
                 UpdateDatabaseDdlRequest {
                     database: database_path.clone(),
                     statements: vec![ddl.to_string()],
                     operation_id: "".to_string(),
+                    proto_descriptors: vec![],
                 },
-                None,
                 None,
             )
             .await;
 
         if let Ok(mut op) = result {
-            let _ = op.wait(None, None).await;
+            let _ = op.wait(None).await;
         }
-        // Ignore errors (table may already exist)
     }
 }
 

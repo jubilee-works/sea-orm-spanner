@@ -1,4 +1,6 @@
 pub mod array_support;
+#[cfg(feature = "with-chrono")]
+pub mod chrono_support;
 mod database;
 mod error;
 #[cfg(feature = "with-json")]

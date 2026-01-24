@@ -19,7 +19,7 @@ path = "src/lib.rs"
 [features]
 default = ["with-chrono", "with-uuid", "with-json", "with-array", "with-rust_decimal"]
 with-array = ["sea-query-spanner/with-array", "sea-orm/postgres-array"]
-with-chrono = ["sea-query-spanner/with-chrono", "sea-orm/with-chrono", "chrono"]
+with-chrono = ["sea-query-spanner/with-chrono", "sea-orm/with-chrono", "chrono", "time"]
 with-uuid = ["sea-query-spanner/with-uuid", "sea-orm/with-uuid", "uuid"]
 with-json = ["sea-query-spanner/with-json", "sea-orm/with-json", "serde_json"]
 with-rust_decimal = [
@@ -33,10 +33,10 @@ sea-orm = { version = "1.1", default-features = false, features = ["proxy"] }
 sea-query = { version = "0.32", default-features = false }
 sea-query-spanner = { path = "sea-query-spanner" }
 
-google-cloud-spanner = "0.12"
-google-cloud-gax = { version = "0.9.1", default-features = false }
-google-cloud-googleapis = { version = "0.6.0", features = ["spanner"] }
-prost-types = "0.11"
+google-cloud-spanner = "0.33"
+google-cloud-gax = { version = "0.19", default-features = false }
+google-cloud-googleapis = { version = "0.16", features = ["spanner"] }
+prost-types = "0.13"
 
 async-trait = "0.1"
 tokio = { version = "1", features = ["full"] }
@@ -44,6 +44,7 @@ futures = "0.3"
 tonic = "0.12"
 
 chrono = { version = "0.4", features = ["serde"], optional = true }
+time = { version = "0.3", optional = true }
 uuid = { version = "1", features = ["v4", "serde"], optional = true }
 rust_decimal = { version = "1", features = ["serde"], optional = true }
 serde = { version = "1", features = ["derive"] }
@@ -58,8 +59,8 @@ tokio-test = "0.4"
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1", features = ["v4", "serde"] }
-google-cloud-spanner = "0.12"
-google-cloud-googleapis = { version = "0.6.0", features = ["spanner"] }
+google-cloud-spanner = "0.33"
+google-cloud-googleapis = { version = "0.16", features = ["spanner"] }
 sea-orm = { version = "1.1", features = [
     "proxy",
     "macros",

@@ -8,19 +8,15 @@ pub struct SpannerDatabase;
 
 impl SpannerDatabase {
     pub async fn connect(database: &str) -> Result<DatabaseConnection, DbErr> {
-        let client = Client::new(database)
-            .await
-            .map_err(|e| SpannerDbErr::Connection(e.to_string()))?;
-
-        let proxy = SpannerProxy::new(Arc::new(client));
-        Database::connect_proxy(sea_orm::DbBackend::MySql, Arc::new(Box::new(proxy))).await
+        let config = ClientConfig::default();
+        Self::connect_with_config(database, config).await
     }
 
     pub async fn connect_with_config(
         database: &str,
         config: ClientConfig,
     ) -> Result<DatabaseConnection, DbErr> {
-        let client = Client::new_with_config(database, config)
+        let client = Client::new(database, config)
             .await
             .map_err(|e| SpannerDbErr::Connection(e.to_string()))?;
 

@@ -104,14 +104,8 @@ impl From<SpannerDbErr> for DbErr {
     }
 }
 
-impl From<google_cloud_spanner::client::TxError> for SpannerDbErr {
-    fn from(err: google_cloud_spanner::client::TxError) -> Self {
-        SpannerDbErr::Query(err.to_string())
-    }
-}
-
-impl From<google_cloud_spanner::client::InitializationError> for SpannerDbErr {
-    fn from(err: google_cloud_spanner::client::InitializationError) -> Self {
+impl From<google_cloud_spanner::client::Error> for SpannerDbErr {
+    fn from(err: google_cloud_spanner::client::Error) -> Self {
         SpannerDbErr::Connection(err.to_string())
     }
 }
