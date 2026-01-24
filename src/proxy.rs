@@ -1,6 +1,7 @@
 use crate::array_support::*;
 use crate::error::SpannerDbErr;
 use async_trait::async_trait;
+use gcloud_googleapis::spanner::v1::TypeCode;
 use gcloud_spanner::client::Client;
 
 use gcloud_spanner::statement::Statement as SpannerStatement;
@@ -418,89 +419,156 @@ impl SpannerProxy {
         idx: usize,
         column_name: &str,
     ) -> Value {
-        if let Ok(v) = row.column::<Option<bool>>(idx) {
-            return Value::Bool(v);
-        }
-        if let Ok(v) = row.column::<Option<i64>>(idx) {
-            if let Some(val) = v {
-                if val >= i32::MIN as i64 && val <= i32::MAX as i64 {
-                    return Value::Int(Some(val as i32));
+        let type_code = row
+            .field(idx)
+            .and_then(|f| f.r#type.as_ref())
+            .map(|t| t.code)
+            .unwrap_or(0);
+
+        match TypeCode::try_from(type_code) {
+            Ok(TypeCode::Bool) => {
+                if let Ok(v) = row.column::<Option<bool>>(idx) {
+                    return Value::Bool(v);
                 }
             }
-            return Value::BigInt(v);
-        }
-        #[cfg(feature = "with-rust_decimal")]
-        if let Ok(Some(big_decimal)) = row.column::<Option<gcloud_spanner::bigdecimal::BigDecimal>>(idx) {
-            if let Ok(decimal) = rust_decimal::Decimal::from_str_exact(&big_decimal.to_string()) {
-                return Value::Decimal(Some(Box::new(decimal)));
-            }
-        }
-        if let Ok(v) = row.column::<Option<f64>>(idx) {
-            return Value::Double(v);
-        }
-        #[cfg(feature = "with-chrono")]
-        if let Ok(v) = row.column::<Option<time::OffsetDateTime>>(idx) {
-            if let Some(odt) = v {
-                let chrono_dt = chrono::DateTime::from_timestamp(
-                    odt.unix_timestamp(),
-                    odt.nanosecond(),
-                )
-                .unwrap_or_else(|| chrono::DateTime::UNIX_EPOCH);
-                return Value::ChronoDateTimeUtc(Some(Box::new(chrono_dt)));
-            }
-            return Value::ChronoDateTimeUtc(None);
-        }
-        #[cfg(feature = "with-uuid")]
-        if let Ok(v) = row.column::<Option<uuid::Uuid>>(idx) {
-            return Value::Uuid(v.map(Box::new));
-        }
-        if let Ok(str_val) = row.column::<Option<String>>(idx) {
-            if let Some(ref s) = str_val {
-                #[cfg(feature = "with-json")]
-                if let Ok(json) = serde_json::from_str::<serde_json::Value>(s) {
-                    return Value::Json(Some(Box::new(json)));
-                }
-                
-                let has_base64_special_chars = s.contains('+') || s.contains('/') || s.contains('=');
-                let is_base64_format = s.len() % 4 == 0 
-                    && s.chars().all(|c| c.is_ascii_alphanumeric() || c == '+' || c == '/' || c == '=');
-                
-                if has_base64_special_chars && is_base64_format {
-                    if let Ok(Some(bytes)) = row.column::<Option<Vec<u8>>>(idx) {
-                        if std::str::from_utf8(&bytes).is_err() || bytes.contains(&0) {
-                            return Value::Bytes(Some(Box::new(bytes)));
+            Ok(TypeCode::Int64) => {
+                if let Ok(v) = row.column::<Option<i64>>(idx) {
+                    if let Some(val) = v {
+                        if val >= i32::MIN as i64 && val <= i32::MAX as i64 {
+                            return Value::Int(Some(val as i32));
                         }
                     }
+                    return Value::BigInt(v);
                 }
             }
-            return Value::String(str_val.map(Box::new));
-        }
-        if let Ok(bytes) = row.column::<Option<Vec<u8>>>(idx) {
-            return Value::Bytes(bytes.map(Box::new));
+            Ok(TypeCode::Float64 | TypeCode::Float32) => {
+                if let Ok(v) = row.column::<Option<f64>>(idx) {
+                    return Value::Double(v);
+                }
+            }
+            Ok(TypeCode::String) => {
+                if let Ok(v) = row.column::<Option<String>>(idx) {
+                    return Value::String(v.map(Box::new));
+                }
+            }
+            Ok(TypeCode::Bytes) => {
+                if let Ok(v) = row.column::<Option<Vec<u8>>>(idx) {
+                    return Value::Bytes(v.map(Box::new));
+                }
+            }
+            Ok(TypeCode::Timestamp | TypeCode::Date) => {
+                #[cfg(feature = "with-chrono")]
+                if let Ok(v) = row.column::<Option<time::OffsetDateTime>>(idx) {
+                    if let Some(odt) = v {
+                        let chrono_dt = chrono::DateTime::from_timestamp(
+                            odt.unix_timestamp(),
+                            odt.nanosecond(),
+                        )
+                        .unwrap_or_else(|| chrono::DateTime::UNIX_EPOCH);
+                        return Value::ChronoDateTimeUtc(Some(Box::new(chrono_dt)));
+                    }
+                    return Value::ChronoDateTimeUtc(None);
+                }
+                #[cfg(not(feature = "with-chrono"))]
+                if let Ok(v) = row.column::<Option<String>>(idx) {
+                    return Value::String(v.map(Box::new));
+                }
+            }
+            Ok(TypeCode::Numeric) => {
+                #[cfg(feature = "with-rust_decimal")]
+                if let Ok(Some(big_decimal)) = row.column::<Option<gcloud_spanner::bigdecimal::BigDecimal>>(idx) {
+                    if let Ok(decimal) = rust_decimal::Decimal::from_str_exact(&big_decimal.to_string()) {
+                        return Value::Decimal(Some(Box::new(decimal)));
+                    }
+                }
+                #[cfg(not(feature = "with-rust_decimal"))]
+                if let Ok(v) = row.column::<Option<String>>(idx) {
+                    return Value::String(v.map(Box::new));
+                }
+            }
+            Ok(TypeCode::Json) => {
+                #[cfg(feature = "with-json")]
+                if let Ok(v) = row.column::<Option<String>>(idx) {
+                    if let Some(s) = v {
+                        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&s) {
+                            return Value::Json(Some(Box::new(json)));
+                        }
+                    }
+                    return Value::Json(None);
+                }
+                #[cfg(not(feature = "with-json"))]
+                if let Ok(v) = row.column::<Option<String>>(idx) {
+                    return Value::String(v.map(Box::new));
+                }
+            }
+            Ok(TypeCode::Uuid) => {
+                #[cfg(feature = "with-uuid")]
+                if let Ok(v) = row.column::<Option<uuid::Uuid>>(idx) {
+                    return Value::Uuid(v.map(Box::new));
+                }
+                #[cfg(not(feature = "with-uuid"))]
+                if let Ok(v) = row.column::<Option<String>>(idx) {
+                    return Value::String(v.map(Box::new));
+                }
+            }
+            Ok(TypeCode::Array) => {
+                return Self::read_array_value(row, idx, column_name);
+            }
+            _ => {}
         }
 
-        if let Ok(arr) = row.column::<Vec<i64>>(idx) {
-            let values: Vec<Value> = arr.into_iter().map(|v| Value::BigInt(Some(v))).collect();
-            return Value::Array(ArrayType::BigInt, Some(Box::new(values)));
-        }
-        if let Ok(arr) = row.column::<Vec<f64>>(idx) {
-            let values: Vec<Value> = arr.into_iter().map(|v| Value::Double(Some(v))).collect();
-            return Value::Array(ArrayType::Double, Some(Box::new(values)));
-        }
-        if let Ok(arr) = row.column::<Vec<String>>(idx) {
-            let values: Vec<Value> = arr
-                .into_iter()
-                .map(|v| Value::String(Some(Box::new(v))))
-                .collect();
-            return Value::Array(ArrayType::String, Some(Box::new(values)));
-        }
-        if let Ok(arr) = row.column::<Vec<bool>>(idx) {
-            let values: Vec<Value> = arr.into_iter().map(|v| Value::Bool(Some(v))).collect();
-            return Value::Array(ArrayType::Bool, Some(Box::new(values)));
-        }
-
-        tracing::warn!("Unknown column type for {}, returning null", column_name);
+        tracing::warn!("Unknown column type {} for {}, returning null", type_code, column_name);
         Value::String(None)
+    }
+
+    fn read_array_value(
+        row: &gcloud_spanner::row::Row,
+        idx: usize,
+        column_name: &str,
+    ) -> Value {
+        let element_type_code = row
+            .field(idx)
+            .and_then(|f| f.r#type.as_ref())
+            .and_then(|t| t.array_element_type.as_ref())
+            .map(|et| et.code)
+            .unwrap_or(0);
+
+        match TypeCode::try_from(element_type_code) {
+            Ok(TypeCode::Bool) => {
+                if let Ok(arr) = row.column::<Vec<bool>>(idx) {
+                    let values: Vec<Value> = arr.into_iter().map(|v| Value::Bool(Some(v))).collect();
+                    return Value::Array(ArrayType::Bool, Some(Box::new(values)));
+                }
+            }
+            Ok(TypeCode::Int64) => {
+                if let Ok(arr) = row.column::<Vec<i64>>(idx) {
+                    let values: Vec<Value> = arr.into_iter().map(|v| Value::BigInt(Some(v))).collect();
+                    return Value::Array(ArrayType::BigInt, Some(Box::new(values)));
+                }
+            }
+            Ok(TypeCode::Float64 | TypeCode::Float32) => {
+                if let Ok(arr) = row.column::<Vec<f64>>(idx) {
+                    let values: Vec<Value> = arr.into_iter().map(|v| Value::Double(Some(v))).collect();
+                    return Value::Array(ArrayType::Double, Some(Box::new(values)));
+                }
+            }
+            Ok(TypeCode::String) => {
+                if let Ok(arr) = row.column::<Vec<String>>(idx) {
+                    let values: Vec<Value> = arr.into_iter().map(|v| Value::String(Some(Box::new(v)))).collect();
+                    return Value::Array(ArrayType::String, Some(Box::new(values)));
+                }
+            }
+            Ok(TypeCode::Bytes) => {
+                if let Ok(arr) = row.column::<Vec<Vec<u8>>>(idx) {
+                    let values: Vec<Value> = arr.into_iter().map(|v| Value::Bytes(Some(Box::new(v)))).collect();
+                    return Value::Array(ArrayType::Bytes, Some(Box::new(values)));
+                }
+            }
+            _ => {}
+        }
+
+        tracing::warn!("Unknown array element type {} for {}", element_type_code, column_name);
+        Value::Array(ArrayType::String, None)
     }
 
     fn extract_column_names_from_statement(statement: &Statement) -> Vec<String> {
