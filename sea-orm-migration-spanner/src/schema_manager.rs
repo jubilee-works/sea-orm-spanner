@@ -21,6 +21,7 @@ use sea_query_spanner::{SpannerAlterTable, SpannerIndexBuilder, SpannerTableBuil
 /// - `DECIMAL(p,s)` / `NUMERIC(p,s)` → `NUMERIC` (Spanner supports NUMERIC)
 /// - `DATETIME` / `TIMESTAMP` → `TIMESTAMP`
 /// - `DATE` → `DATE`
+/// - `BINARY(16)` → `UUID` (SeaORM MySQL backend uses BINARY(16) for Uuid)
 /// - `BLOB` / `BINARY` / `VARBINARY` → `BYTES(MAX)`
 /// - `JSON` → `JSON`
 /// - Removes `AUTO_INCREMENT`
@@ -113,6 +114,10 @@ fn mysql_ddl_to_spanner(mysql_ddl: &str) -> String {
     // BLOB/BINARY/VARBINARY → BYTES
     let blob_re = Regex::new(r"(?i)\b(LONG|MEDIUM|TINY)?BLOB").unwrap();
     sql = blob_re.replace_all(&sql, "BYTES(MAX)").to_string();
+
+    // BINARY(16) → UUID (SeaORM MySQL backend generates BINARY(16) for Uuid type)
+    let binary16_re = Regex::new(r"(?i)\bBINARY\s*\(\s*16\s*\)").unwrap();
+    sql = binary16_re.replace_all(&sql, "UUID").to_string();
 
     let binary_re = Regex::new(r"(?i)\b(VAR)?BINARY\s*\(\s*(\d+)\s*\)").unwrap();
     sql = binary_re.replace_all(&sql, "BYTES($2)").to_string();
