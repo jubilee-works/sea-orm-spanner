@@ -63,7 +63,7 @@ pub fn value_to_spanner_literal(value: &Value) -> String {
         #[cfg(feature = "with-chrono")]
         Value::ChronoDateTimeWithTimeZone(None) => "NULL".to_string(),
         #[cfg(feature = "with-uuid")]
-        Value::Uuid(Some(u)) => format!("'{}'", u.hyphenated().to_string()),
+        Value::Uuid(Some(u)) => format!("'{}'", u.hyphenated()),
         #[cfg(feature = "with-uuid")]
         Value::Uuid(None) => "NULL".to_string(),
         #[cfg(feature = "with-json")]
@@ -75,8 +75,7 @@ pub fn value_to_spanner_literal(value: &Value) -> String {
         #[cfg(feature = "with-rust_decimal")]
         Value::Decimal(None) => "NULL".to_string(),
         Value::Array(_, Some(values)) => {
-            let elements: Vec<String> =
-                values.iter().map(|v| value_to_spanner_literal(v)).collect();
+            let elements: Vec<String> = values.iter().map(value_to_spanner_literal).collect();
             format!("[{}]", elements.join(", "))
         }
         Value::Array(_, None) => "NULL".to_string(),

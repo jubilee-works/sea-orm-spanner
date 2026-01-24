@@ -479,7 +479,7 @@ impl SpannerProxy {
                             odt.unix_timestamp(),
                             odt.nanosecond(),
                         )
-                        .unwrap_or_else(|| chrono::DateTime::UNIX_EPOCH);
+                        .unwrap_or(chrono::DateTime::UNIX_EPOCH);
                         return Value::ChronoDateTimeUtc(Some(Box::new(chrono_dt)));
                     }
                     return Value::ChronoDateTimeUtc(None);
