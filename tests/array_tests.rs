@@ -159,11 +159,11 @@ mod string_array_tests {
         };
 
         let inserted = model.insert(&db).await.expect("Insert failed");
+        assert_eq!(inserted.string_array, vec!["hello", "world", "日本語"]);
         assert_eq!(
-            inserted.string_array,
-            vec!["hello", "world", "日本語"]
+            inserted.string_array_nullable,
+            Some(vec!["optional".to_string()])
         );
-        assert_eq!(inserted.string_array_nullable, Some(vec!["optional".to_string()]));
 
         let selected = array_types::Entity::find_by_id(&id)
             .one(&db)

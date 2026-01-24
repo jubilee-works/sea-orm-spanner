@@ -259,9 +259,7 @@ mod float_type_tests {
 
         let inserted = model.insert(&db).await.expect("Insert failed");
         assert!((inserted.float64_val - std::f64::consts::PI).abs() < f64::EPSILON);
-        assert!(
-            (inserted.float64_nullable.unwrap() - std::f64::consts::E).abs() < f64::EPSILON
-        );
+        assert!((inserted.float64_nullable.unwrap() - std::f64::consts::E).abs() < f64::EPSILON);
 
         let selected = all_types::Entity::find_by_id(&id)
             .one(&db)
@@ -493,7 +491,11 @@ mod timestamp_type_tests {
 
         let inserted = model.insert(&db).await.expect("Insert failed");
         let time_diff = (inserted.timestamp_val - now).num_seconds().abs();
-        assert!(time_diff < 2, "Timestamp difference too large: {} seconds", time_diff);
+        assert!(
+            time_diff < 2,
+            "Timestamp difference too large: {} seconds",
+            time_diff
+        );
 
         let selected = all_types::Entity::find_by_id(&id)
             .one(&db)
@@ -518,14 +520,20 @@ mod timestamp_type_tests {
         };
 
         let inserted = model.insert(&db).await.expect("Insert failed");
-        assert_eq!(inserted.timestamp_val.date_naive(), specific_time.date_naive());
+        assert_eq!(
+            inserted.timestamp_val.date_naive(),
+            specific_time.date_naive()
+        );
 
         let selected = all_types::Entity::find_by_id(&id)
             .one(&db)
             .await
             .expect("Select failed")
             .expect("Entity not found");
-        assert_eq!(selected.timestamp_val.date_naive(), specific_time.date_naive());
+        assert_eq!(
+            selected.timestamp_val.date_naive(),
+            specific_time.date_naive()
+        );
     }
 
     #[tokio::test]
@@ -652,17 +660,12 @@ mod json_type_tests {
     #[serial]
     async fn test_json_primitive_values() {
         let db = setup_test_database().await;
-        
-        let test_cases = vec![
-            json!(null),
-            json!(true),
-            json!(false),
-            json!("a string"),
-        ];
+
+        let test_cases = vec![json!(null), json!(true), json!(false), json!("a string")];
 
         for (i, json_val) in test_cases.into_iter().enumerate() {
             let id = uuid::Uuid::new_v4().to_string();
-            
+
             let model = all_types::ActiveModel {
                 json_val: Set(json_val.clone()),
                 json_nullable: Set(Some(json_val.clone())),

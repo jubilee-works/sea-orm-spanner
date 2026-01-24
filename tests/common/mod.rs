@@ -88,7 +88,16 @@ const ALL_DDL: &[&str] = &[
     ) PRIMARY KEY (id)",
 ];
 
-const ALL_TABLES: &[&str] = &["users", "posts", "categories", "products", "all_types", "array_types", "numeric_types", "uuid_types"];
+const ALL_TABLES: &[&str] = &[
+    "users",
+    "posts",
+    "categories",
+    "products",
+    "all_types",
+    "array_types",
+    "numeric_types",
+    "uuid_types",
+];
 
 pub async fn setup_test_database() -> DatabaseConnection {
     if std::env::var("SPANNER_EMULATOR_HOST").is_err() {

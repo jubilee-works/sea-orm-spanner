@@ -142,37 +142,45 @@ impl SpannerProxy {
             #[cfg(feature = "with-chrono")]
             Value::ChronoTime(None) => stmt.add_param(param_name, &Option::<String>::None),
             #[cfg(feature = "with-chrono")]
-            Value::ChronoDateTime(Some(v)) => {
-                stmt.add_param(param_name, &crate::chrono_support::SpannerNaiveDateTime::new(**v))
-            }
+            Value::ChronoDateTime(Some(v)) => stmt.add_param(
+                param_name,
+                &crate::chrono_support::SpannerNaiveDateTime::new(**v),
+            ),
             #[cfg(feature = "with-chrono")]
-            Value::ChronoDateTime(None) => {
-                stmt.add_param(param_name, &crate::chrono_support::SpannerOptionalNaiveDateTime::none())
-            }
+            Value::ChronoDateTime(None) => stmt.add_param(
+                param_name,
+                &crate::chrono_support::SpannerOptionalNaiveDateTime::none(),
+            ),
             #[cfg(feature = "with-chrono")]
-            Value::ChronoDateTimeUtc(Some(v)) => {
-                stmt.add_param(param_name, &crate::chrono_support::SpannerTimestamp::new(*v.as_ref()))
-            }
+            Value::ChronoDateTimeUtc(Some(v)) => stmt.add_param(
+                param_name,
+                &crate::chrono_support::SpannerTimestamp::new(*v.as_ref()),
+            ),
             #[cfg(feature = "with-chrono")]
-            Value::ChronoDateTimeUtc(None) => {
-                stmt.add_param(param_name, &crate::chrono_support::SpannerOptionalTimestamp::none())
-            }
+            Value::ChronoDateTimeUtc(None) => stmt.add_param(
+                param_name,
+                &crate::chrono_support::SpannerOptionalTimestamp::none(),
+            ),
             #[cfg(feature = "with-chrono")]
-            Value::ChronoDateTimeLocal(Some(v)) => {
-                stmt.add_param(param_name, &crate::chrono_support::SpannerTimestamp::new(v.to_utc()))
-            }
+            Value::ChronoDateTimeLocal(Some(v)) => stmt.add_param(
+                param_name,
+                &crate::chrono_support::SpannerTimestamp::new(v.to_utc()),
+            ),
             #[cfg(feature = "with-chrono")]
-            Value::ChronoDateTimeLocal(None) => {
-                stmt.add_param(param_name, &crate::chrono_support::SpannerOptionalTimestamp::none())
-            }
+            Value::ChronoDateTimeLocal(None) => stmt.add_param(
+                param_name,
+                &crate::chrono_support::SpannerOptionalTimestamp::none(),
+            ),
             #[cfg(feature = "with-chrono")]
-            Value::ChronoDateTimeWithTimeZone(Some(v)) => {
-                stmt.add_param(param_name, &crate::chrono_support::SpannerTimestamp::new(v.to_utc()))
-            }
+            Value::ChronoDateTimeWithTimeZone(Some(v)) => stmt.add_param(
+                param_name,
+                &crate::chrono_support::SpannerTimestamp::new(v.to_utc()),
+            ),
             #[cfg(feature = "with-chrono")]
-            Value::ChronoDateTimeWithTimeZone(None) => {
-                stmt.add_param(param_name, &crate::chrono_support::SpannerOptionalTimestamp::none())
-            }
+            Value::ChronoDateTimeWithTimeZone(None) => stmt.add_param(
+                param_name,
+                &crate::chrono_support::SpannerOptionalTimestamp::none(),
+            ),
 
             #[cfg(feature = "with-uuid")]
             Value::Uuid(Some(v)) => stmt.add_param(param_name, v.as_ref()),
@@ -180,11 +188,15 @@ impl SpannerProxy {
             Value::Uuid(None) => stmt.add_param(param_name, &Option::<uuid::Uuid>::None),
 
             #[cfg(feature = "with-json")]
-            Value::Json(Some(v)) => {
-                stmt.add_param(param_name, &crate::json_support::SpannerOptionalJson::some(v.as_ref().clone()))
-            }
+            Value::Json(Some(v)) => stmt.add_param(
+                param_name,
+                &crate::json_support::SpannerOptionalJson::some(v.as_ref().clone()),
+            ),
             #[cfg(feature = "with-json")]
-            Value::Json(None) => stmt.add_param(param_name, &crate::json_support::SpannerOptionalJson::none()),
+            Value::Json(None) => stmt.add_param(
+                param_name,
+                &crate::json_support::SpannerOptionalJson::none(),
+            ),
 
             #[cfg(feature = "with-rust_decimal")]
             Value::Decimal(Some(v)) => {
@@ -198,7 +210,10 @@ impl SpannerProxy {
                 stmt.add_param(param_name, &big_decimal);
             }
             #[cfg(feature = "with-rust_decimal")]
-            Value::Decimal(None) => stmt.add_param(param_name, &Option::<gcloud_spanner::bigdecimal::BigDecimal>::None),
+            Value::Decimal(None) => stmt.add_param(
+                param_name,
+                &Option::<gcloud_spanner::bigdecimal::BigDecimal>::None,
+            ),
 
             Value::Array(array_type, Some(values)) => {
                 self.bind_array(stmt, param_name, array_type, values)?;
@@ -476,8 +491,12 @@ impl SpannerProxy {
             }
             Ok(TypeCode::Numeric) => {
                 #[cfg(feature = "with-rust_decimal")]
-                if let Ok(Some(big_decimal)) = row.column::<Option<gcloud_spanner::bigdecimal::BigDecimal>>(idx) {
-                    if let Ok(decimal) = rust_decimal::Decimal::from_str_exact(&big_decimal.to_string()) {
+                if let Ok(Some(big_decimal)) =
+                    row.column::<Option<gcloud_spanner::bigdecimal::BigDecimal>>(idx)
+                {
+                    if let Ok(decimal) =
+                        rust_decimal::Decimal::from_str_exact(&big_decimal.to_string())
+                    {
                         return Value::Decimal(Some(Box::new(decimal)));
                     }
                 }
@@ -517,15 +536,15 @@ impl SpannerProxy {
             _ => {}
         }
 
-        tracing::warn!("Unknown column type {} for {}, returning null", type_code, column_name);
+        tracing::warn!(
+            "Unknown column type {} for {}, returning null",
+            type_code,
+            column_name
+        );
         Value::String(None)
     }
 
-    fn read_array_value(
-        row: &gcloud_spanner::row::Row,
-        idx: usize,
-        column_name: &str,
-    ) -> Value {
+    fn read_array_value(row: &gcloud_spanner::row::Row, idx: usize, column_name: &str) -> Value {
         let element_type_code = row
             .field(idx)
             .and_then(|f| f.r#type.as_ref())
@@ -536,38 +555,51 @@ impl SpannerProxy {
         match TypeCode::try_from(element_type_code) {
             Ok(TypeCode::Bool) => {
                 if let Ok(arr) = row.column::<Vec<bool>>(idx) {
-                    let values: Vec<Value> = arr.into_iter().map(|v| Value::Bool(Some(v))).collect();
+                    let values: Vec<Value> =
+                        arr.into_iter().map(|v| Value::Bool(Some(v))).collect();
                     return Value::Array(ArrayType::Bool, Some(Box::new(values)));
                 }
             }
             Ok(TypeCode::Int64) => {
                 if let Ok(arr) = row.column::<Vec<i64>>(idx) {
-                    let values: Vec<Value> = arr.into_iter().map(|v| Value::BigInt(Some(v))).collect();
+                    let values: Vec<Value> =
+                        arr.into_iter().map(|v| Value::BigInt(Some(v))).collect();
                     return Value::Array(ArrayType::BigInt, Some(Box::new(values)));
                 }
             }
             Ok(TypeCode::Float64 | TypeCode::Float32) => {
                 if let Ok(arr) = row.column::<Vec<f64>>(idx) {
-                    let values: Vec<Value> = arr.into_iter().map(|v| Value::Double(Some(v))).collect();
+                    let values: Vec<Value> =
+                        arr.into_iter().map(|v| Value::Double(Some(v))).collect();
                     return Value::Array(ArrayType::Double, Some(Box::new(values)));
                 }
             }
             Ok(TypeCode::String) => {
                 if let Ok(arr) = row.column::<Vec<String>>(idx) {
-                    let values: Vec<Value> = arr.into_iter().map(|v| Value::String(Some(Box::new(v)))).collect();
+                    let values: Vec<Value> = arr
+                        .into_iter()
+                        .map(|v| Value::String(Some(Box::new(v))))
+                        .collect();
                     return Value::Array(ArrayType::String, Some(Box::new(values)));
                 }
             }
             Ok(TypeCode::Bytes) => {
                 if let Ok(arr) = row.column::<Vec<Vec<u8>>>(idx) {
-                    let values: Vec<Value> = arr.into_iter().map(|v| Value::Bytes(Some(Box::new(v)))).collect();
+                    let values: Vec<Value> = arr
+                        .into_iter()
+                        .map(|v| Value::Bytes(Some(Box::new(v))))
+                        .collect();
                     return Value::Array(ArrayType::Bytes, Some(Box::new(values)));
                 }
             }
             _ => {}
         }
 
-        tracing::warn!("Unknown array element type {} for {}", element_type_code, column_name);
+        tracing::warn!(
+            "Unknown array element type {} for {}",
+            element_type_code,
+            column_name
+        );
         Value::Array(ArrayType::String, None)
     }
 
