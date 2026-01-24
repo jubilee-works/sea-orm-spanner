@@ -1,6 +1,6 @@
-use google_cloud_gax::grpc::Status;
-use google_cloud_gax::retry::TryAs;
-use google_cloud_spanner::session::SessionError;
+use gcloud_gax::grpc::Status;
+use gcloud_gax::retry::TryAs;
+use gcloud_spanner::session::SessionError;
 use sea_orm::DbErr;
 use thiserror::Error;
 
@@ -104,14 +104,14 @@ impl From<SpannerDbErr> for DbErr {
     }
 }
 
-impl From<google_cloud_spanner::client::Error> for SpannerDbErr {
-    fn from(err: google_cloud_spanner::client::Error) -> Self {
+impl From<gcloud_spanner::client::Error> for SpannerDbErr {
+    fn from(err: gcloud_spanner::client::Error) -> Self {
         SpannerDbErr::Connection(err.to_string())
     }
 }
 
-impl From<google_cloud_spanner::row::Error> for SpannerDbErr {
-    fn from(err: google_cloud_spanner::row::Error) -> Self {
+impl From<gcloud_spanner::row::Error> for SpannerDbErr {
+    fn from(err: gcloud_spanner::row::Error) -> Self {
         SpannerDbErr::RowParse(err.to_string())
     }
 }

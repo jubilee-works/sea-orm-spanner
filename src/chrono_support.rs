@@ -1,5 +1,5 @@
-use google_cloud_googleapis::spanner::v1::{Type, TypeCode};
-use google_cloud_spanner::statement::{single_type, ToKind};
+use gcloud_googleapis::spanner::v1::{Type, TypeCode};
+use gcloud_spanner::statement::{single_type, ToKind};
 use prost_types::value::Kind;
 
 pub struct SpannerTimestamp(pub chrono::DateTime<chrono::Utc>);

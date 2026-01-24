@@ -1,9 +1,9 @@
 use crate::error::SpannerDbErr;
 use crate::query_result::SpannerQueryResult;
-use google_cloud_spanner::reader::AsyncIterator;
-use google_cloud_spanner::statement::Statement as SpannerStatement;
-use google_cloud_spanner::transaction_ro::ReadOnlyTransaction;
-use google_cloud_spanner::transaction_rw::ReadWriteTransaction;
+use gcloud_spanner::reader::AsyncIterator;
+use gcloud_spanner::statement::Statement as SpannerStatement;
+use gcloud_spanner::transaction_ro::ReadOnlyTransaction;
+use gcloud_spanner::transaction_rw::ReadWriteTransaction;
 use sea_orm::{DbErr, Statement};
 
 pub struct SpannerReadWriteTransaction<'a> {

@@ -1,5 +1,5 @@
-use google_cloud_googleapis::spanner::v1::TypeCode;
-use google_cloud_spanner::statement::{single_type, ToKind};
+use gcloud_googleapis::spanner::v1::TypeCode;
+use gcloud_spanner::statement::{single_type, ToKind};
 use prost_types::value::Kind;
 
 pub struct SpannerJson(pub serde_json::Value);
@@ -15,7 +15,7 @@ impl ToKind for SpannerJson {
         Kind::StringValue(self.0.to_string())
     }
 
-    fn get_type() -> google_cloud_googleapis::spanner::v1::Type {
+    fn get_type() -> gcloud_googleapis::spanner::v1::Type {
         single_type(TypeCode::Json)
     }
 }
@@ -40,7 +40,7 @@ impl ToKind for SpannerOptionalJson {
         }
     }
 
-    fn get_type() -> google_cloud_googleapis::spanner::v1::Type {
+    fn get_type() -> gcloud_googleapis::spanner::v1::Type {
         single_type(TypeCode::Json)
     }
 }

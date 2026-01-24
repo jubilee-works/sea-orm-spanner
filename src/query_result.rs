@@ -1,4 +1,4 @@
-use google_cloud_spanner::row::Row as SpannerRow;
+use gcloud_spanner::row::Row as SpannerRow;
 use sea_orm::{DbErr, TryGetError};
 
 pub struct SpannerQueryResult {

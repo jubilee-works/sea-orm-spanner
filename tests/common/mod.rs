@@ -1,9 +1,9 @@
-use google_cloud_googleapis::spanner::admin::database::v1::{
+use gcloud_googleapis::spanner::admin::database::v1::{
     CreateDatabaseRequest, DatabaseDialect, UpdateDatabaseDdlRequest,
 };
-use google_cloud_googleapis::spanner::admin::instance::v1::{CreateInstanceRequest, Instance};
-use google_cloud_spanner::admin::client::Client as AdminClient;
-use google_cloud_spanner::admin::AdminClientConfig;
+use gcloud_googleapis::spanner::admin::instance::v1::{CreateInstanceRequest, Instance};
+use gcloud_spanner::admin::client::Client as AdminClient;
+use gcloud_spanner::admin::AdminClientConfig;
 use sea_orm::{ConnectionTrait, DatabaseConnection, Statement};
 use sea_orm_spanner::SpannerDatabase;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -191,7 +191,8 @@ async fn ensure_tables_exist() {
                     database: database_path.clone(),
                     statements: vec![ddl.to_string()],
                     operation_id: "".to_string(),
-                    proto_descriptors: vec![],
+                    proto_descriptors: Default::default(),
+                    throughput_mode: false,
                 },
                 None,
             )

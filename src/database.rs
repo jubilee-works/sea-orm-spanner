@@ -1,6 +1,6 @@
 use crate::error::SpannerDbErr;
 use crate::proxy::SpannerProxy;
-use google_cloud_spanner::client::{Client, ClientConfig};
+use gcloud_spanner::client::{Client, ClientConfig};
 use sea_orm::{Database, DatabaseConnection, DbErr};
 use std::sync::Arc;
 

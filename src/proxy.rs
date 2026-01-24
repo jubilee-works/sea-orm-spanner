@@ -1,9 +1,9 @@
 use crate::array_support::*;
 use crate::error::SpannerDbErr;
 use async_trait::async_trait;
-use google_cloud_spanner::client::Client;
+use gcloud_spanner::client::Client;
 
-use google_cloud_spanner::statement::Statement as SpannerStatement;
+use gcloud_spanner::statement::Statement as SpannerStatement;
 use sea_orm::ProxyDatabaseTrait;
 use sea_orm::ProxyExecResult;
 use sea_orm::ProxyRow;
@@ -188,7 +188,7 @@ impl SpannerProxy {
             #[cfg(feature = "with-rust_decimal")]
             Value::Decimal(Some(v)) => {
                 use std::str::FromStr;
-                let big_decimal = google_cloud_spanner::bigdecimal::BigDecimal::from_str(&v.to_string())
+                let big_decimal = gcloud_spanner::bigdecimal::BigDecimal::from_str(&v.to_string())
                     .map_err(|e| SpannerDbErr::TypeConversion {
                         column: param_name.to_string(),
                         expected: "BigDecimal".to_string(),
@@ -197,7 +197,7 @@ impl SpannerProxy {
                 stmt.add_param(param_name, &big_decimal);
             }
             #[cfg(feature = "with-rust_decimal")]
-            Value::Decimal(None) => stmt.add_param(param_name, &Option::<google_cloud_spanner::bigdecimal::BigDecimal>::None),
+            Value::Decimal(None) => stmt.add_param(param_name, &Option::<gcloud_spanner::bigdecimal::BigDecimal>::None),
 
             Value::Array(array_type, Some(values)) => {
                 self.bind_array(stmt, param_name, array_type, values)?;
@@ -414,7 +414,7 @@ impl SpannerProxy {
     }
 
     fn spanner_value_to_sea_value(
-        row: &google_cloud_spanner::row::Row,
+        row: &gcloud_spanner::row::Row,
         idx: usize,
         column_name: &str,
     ) -> Value {
@@ -430,7 +430,7 @@ impl SpannerProxy {
             return Value::BigInt(v);
         }
         #[cfg(feature = "with-rust_decimal")]
-        if let Ok(Some(big_decimal)) = row.column::<Option<google_cloud_spanner::bigdecimal::BigDecimal>>(idx) {
+        if let Ok(Some(big_decimal)) = row.column::<Option<gcloud_spanner::bigdecimal::BigDecimal>>(idx) {
             if let Ok(decimal) = rust_decimal::Decimal::from_str_exact(&big_decimal.to_string()) {
                 return Value::Decimal(Some(Box::new(decimal)));
             }

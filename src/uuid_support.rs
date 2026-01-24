@@ -3,8 +3,8 @@
 //! This module provides a wrapper type and ToKind implementation
 //! for using Spanner's native UUID type instead of STRING(36).
 
-use google_cloud_googleapis::spanner::v1::{Type, TypeAnnotationCode};
-use google_cloud_spanner::statement::ToKind;
+use gcloud_googleapis::spanner::v1::{Type, TypeAnnotationCode};
+use gcloud_spanner::statement::ToKind;
 use prost_types::value::Kind;
 
 const TYPE_CODE_UUID: i32 = 17;

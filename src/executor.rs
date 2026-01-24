@@ -1,9 +1,9 @@
 use crate::error::{SpannerDbErr, SpannerTxError};
 use crate::query_result::SpannerQueryResult;
-use google_cloud_gax::grpc::Status;
-use google_cloud_spanner::client::Client;
-use google_cloud_spanner::reader::AsyncIterator;
-use google_cloud_spanner::statement::Statement as SpannerStatement;
+use gcloud_gax::grpc::Status;
+use gcloud_spanner::client::Client;
+use gcloud_spanner::reader::AsyncIterator;
+use gcloud_spanner::statement::Statement as SpannerStatement;
 use sea_orm::{DbErr, Statement};
 use std::sync::Arc;
 
