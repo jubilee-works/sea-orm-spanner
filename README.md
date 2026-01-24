@@ -307,6 +307,8 @@ Spanner ARRAY types are supported for the following element types:
 - `ARRAY<STRING>` → `Vec<String>`
 - `ARRAY<BOOL>` → `Vec<bool>`
 
+**Limitation**: Empty arrays cannot be reliably read back from Spanner due to SDK limitations. The Spanner SDK returns empty arrays without type information, making it impossible to determine the correct element type. Always store at least one element in arrays, or use nullable arrays with `NULL` instead of empty arrays.
+
 Example entity:
 
 ```rust
@@ -324,6 +326,8 @@ pub struct Model {
 #### NUMERIC Type
 
 Spanner NUMERIC type is supported via `rust_decimal::Decimal`. NUMERIC provides 38 digits of precision with 9 decimal places.
+
+**Limitation**: Due to Spanner SDK limitations with type detection, avoid using NUMERIC with special values like zero in the same table as STRING columns. The SDK may misinterpret types when reading null or zero values.
 
 Example entity:
 

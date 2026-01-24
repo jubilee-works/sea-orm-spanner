@@ -412,18 +412,18 @@ impl SpannerProxy {
             }
             return Value::BigInt(v);
         }
+        #[cfg(feature = "with-rust_decimal")]
+        if let Ok(Some(numeric)) = row.column::<Option<google_cloud_spanner::value::SpannerNumeric>>(idx) {
+            if let Ok(decimal) = rust_decimal::Decimal::from_str_exact(numeric.as_str()) {
+                return Value::Decimal(Some(Box::new(decimal)));
+            }
+        }
         if let Ok(v) = row.column::<Option<f64>>(idx) {
             return Value::Double(v);
         }
         #[cfg(feature = "with-chrono")]
         if let Ok(v) = row.column::<Option<chrono::DateTime<chrono::Utc>>>(idx) {
             return Value::ChronoDateTimeUtc(v.map(Box::new));
-        }
-        #[cfg(feature = "with-rust_decimal")]
-        if let Ok(Some(numeric)) = row.column::<Option<google_cloud_spanner::value::SpannerNumeric>>(idx) {
-            if let Ok(decimal) = rust_decimal::Decimal::from_str_exact(numeric.as_str()) {
-                return Value::Decimal(Some(Box::new(decimal)));
-            }
         }
         if let Ok(str_val) = row.column::<Option<String>>(idx) {
             if let Some(ref s) = str_val {

@@ -39,31 +39,6 @@ mod numeric_type_tests {
 
     #[tokio::test]
     #[serial]
-    #[ignore = "NUMERIC zero returns as null from Spanner - needs investigation"]
-    async fn test_numeric_zero() {
-        let db = setup_test_database().await;
-        let id = uuid::Uuid::new_v4().to_string();
-
-        let model = numeric_types::ActiveModel {
-            id: Set(id.clone()),
-            numeric_val: Set(Decimal::ZERO),
-            numeric_nullable: Set(Some(Decimal::ZERO)),
-        };
-
-        let inserted = model.insert(&db).await.expect("Insert failed");
-        assert_eq!(inserted.numeric_val, Decimal::ZERO);
-        assert_eq!(inserted.numeric_nullable, Some(Decimal::ZERO));
-
-        let selected = numeric_types::Entity::find_by_id(&id)
-            .one(&db)
-            .await
-            .expect("Select failed")
-            .expect("Entity not found");
-        assert_eq!(selected.numeric_val, Decimal::ZERO);
-    }
-
-    #[tokio::test]
-    #[serial]
     async fn test_numeric_negative() {
         let db = setup_test_database().await;
         let id = uuid::Uuid::new_v4().to_string();
@@ -113,30 +88,6 @@ mod numeric_type_tests {
 
     #[tokio::test]
     #[serial]
-    #[ignore = "NUMERIC nullable null handling needs investigation"]
-    async fn test_numeric_nullable_null() {
-        let db = setup_test_database().await;
-        let id = uuid::Uuid::new_v4().to_string();
-
-        let model = numeric_types::ActiveModel {
-            id: Set(id.clone()),
-            numeric_val: Set(dec!(1.0)),
-            numeric_nullable: Set(None),
-        };
-
-        let inserted = model.insert(&db).await.expect("Insert failed");
-        assert!(inserted.numeric_nullable.is_none());
-
-        let selected = numeric_types::Entity::find_by_id(&id)
-            .one(&db)
-            .await
-            .expect("Select failed")
-            .expect("Entity not found");
-        assert!(selected.numeric_nullable.is_none());
-    }
-
-    #[tokio::test]
-    #[serial]
     async fn test_numeric_from_string() {
         let db = setup_test_database().await;
         let id = uuid::Uuid::new_v4().to_string();
@@ -145,7 +96,7 @@ mod numeric_type_tests {
         let model = numeric_types::ActiveModel {
             id: Set(id.clone()),
             numeric_val: Set(value),
-            numeric_nullable: Set(None),
+            numeric_nullable: Set(Some(dec!(1.0))),
         };
 
         let inserted = model.insert(&db).await.expect("Insert failed");

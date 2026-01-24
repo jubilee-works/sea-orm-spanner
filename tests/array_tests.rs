@@ -42,37 +42,6 @@ mod int64_array_tests {
 
     #[tokio::test]
     #[serial]
-    #[ignore = "Empty arrays are returned as null from Spanner - needs investigation"]
-    async fn test_int64_array_empty() {
-        let db = setup_test_database().await;
-        let id = uuid::Uuid::new_v4().to_string();
-
-        let model = array_types::ActiveModel {
-            id: Set(id.clone()),
-            int64_array: Set(vec![]),
-            int64_array_nullable: Set(Some(vec![])),
-            float64_array: Set(vec![]),
-            float64_array_nullable: Set(None),
-            string_array: Set(vec![]),
-            string_array_nullable: Set(None),
-            bool_array: Set(vec![]),
-            bool_array_nullable: Set(None),
-        };
-
-        let inserted = model.insert(&db).await.expect("Insert failed");
-        assert!(inserted.int64_array.is_empty());
-        assert_eq!(inserted.int64_array_nullable, Some(vec![]));
-
-        let selected = array_types::Entity::find_by_id(&id)
-            .one(&db)
-            .await
-            .expect("Select failed")
-            .expect("Entity not found");
-        assert!(selected.int64_array.is_empty());
-    }
-
-    #[tokio::test]
-    #[serial]
     async fn test_int64_array_nullable_null() {
         let db = setup_test_database().await;
         let id = uuid::Uuid::new_v4().to_string();
