@@ -178,9 +178,9 @@ impl SpannerProxy {
             Value::Json(None) => stmt.add_param(param_name, &crate::json_support::SpannerOptionalJson::none()),
 
             #[cfg(feature = "with-rust_decimal")]
-            Value::Decimal(Some(v)) => stmt.add_param(param_name, &v.to_string()),
+            Value::Decimal(Some(v)) => stmt.add_param(param_name, &google_cloud_spanner::value::SpannerNumeric::new(&v.to_string())),
             #[cfg(feature = "with-rust_decimal")]
-            Value::Decimal(None) => stmt.add_param(param_name, &Option::<String>::None),
+            Value::Decimal(None) => stmt.add_param(param_name, &Option::<google_cloud_spanner::value::SpannerNumeric>::None),
 
             Value::Array(array_type, Some(values)) => {
                 self.bind_array(stmt, param_name, array_type, values)?;
@@ -420,7 +420,7 @@ impl SpannerProxy {
             return Value::ChronoDateTimeUtc(v.map(Box::new));
         }
         #[cfg(feature = "with-rust_decimal")]
-        if let Ok(numeric) = row.column::<google_cloud_spanner::value::SpannerNumeric>(idx) {
+        if let Ok(Some(numeric)) = row.column::<Option<google_cloud_spanner::value::SpannerNumeric>>(idx) {
             if let Ok(decimal) = rust_decimal::Decimal::from_str_exact(numeric.as_str()) {
                 return Value::Decimal(Some(Box::new(decimal)));
             }
