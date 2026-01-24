@@ -426,7 +426,13 @@ impl SpannerProxy {
             }
         }
         if let Ok(str_val) = row.column::<Option<String>>(idx) {
-            if let Some(ref s) = str_val {                
+            if let Some(ref s) = str_val {
+                // UUID check first - Spanner's native UUID type returns as string
+                #[cfg(feature = "with-uuid")]
+                if let Ok(uuid) = uuid::Uuid::parse_str(s) {
+                    return Value::Uuid(Some(Box::new(uuid)));
+                }
+                
                 #[cfg(feature = "with-json")]
                 if let Ok(json) = serde_json::from_str::<serde_json::Value>(s) {
                     return Value::Json(Some(Box::new(json)));
