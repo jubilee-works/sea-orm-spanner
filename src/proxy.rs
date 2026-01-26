@@ -471,7 +471,7 @@ impl SpannerProxy {
                     return Value::Bytes(v.map(Box::new));
                 }
             }
-            Ok(TypeCode::Timestamp | TypeCode::Date) => {
+            Ok(TypeCode::Timestamp) => {
                 #[cfg(feature = "with-chrono")]
                 if let Ok(v) = row.column::<Option<time::OffsetDateTime>>(idx) {
                     if let Some(odt) = v {
@@ -483,6 +483,24 @@ impl SpannerProxy {
                         return Value::ChronoDateTimeUtc(Some(Box::new(chrono_dt)));
                     }
                     return Value::ChronoDateTimeUtc(None);
+                }
+                #[cfg(not(feature = "with-chrono"))]
+                if let Ok(v) = row.column::<Option<String>>(idx) {
+                    return Value::String(v.map(Box::new));
+                }
+            }
+            Ok(TypeCode::Date) => {
+                #[cfg(feature = "with-chrono")]
+                if let Ok(v) = row.column::<Option<time::Date>>(idx) {
+                    if let Some(d) = v {
+                        let naive_date = chrono::NaiveDate::from_ymd_opt(
+                            d.year(),
+                            d.month() as u32,
+                            d.day() as u32,
+                        );
+                        return Value::ChronoDate(naive_date.map(Box::new));
+                    }
+                    return Value::ChronoDate(None);
                 }
                 #[cfg(not(feature = "with-chrono"))]
                 if let Ok(v) = row.column::<Option<String>>(idx) {

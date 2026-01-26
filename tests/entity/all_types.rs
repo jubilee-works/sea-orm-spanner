@@ -28,6 +28,9 @@ pub struct Model {
     pub timestamp_val: DateTimeUtc,
     pub timestamp_nullable: Option<DateTimeUtc>,
 
+    pub date_val: Date,
+    pub date_nullable: Option<Date>,
+
     #[sea_orm(column_type = "Json")]
     pub json_val: Json,
     #[sea_orm(column_type = "Json", nullable)]

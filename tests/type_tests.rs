@@ -1,7 +1,7 @@
 mod common;
 mod entity;
 
-use chrono::Utc;
+use chrono::{NaiveDate, Utc};
 use common::setup_test_database;
 use entity::all_types;
 use sea_orm::{ActiveModelTrait, EntityTrait, Set};
@@ -27,6 +27,8 @@ fn create_test_model(id: &str) -> all_types::ActiveModel {
         bytes_nullable: Set(Some(vec![0xDE, 0xAD, 0xBE, 0xEF])),
         timestamp_val: Set(Utc::now()),
         timestamp_nullable: Set(Some(Utc::now())),
+        date_val: Set(NaiveDate::from_ymd_opt(2026, 1, 26).unwrap()),
+        date_nullable: Set(Some(NaiveDate::from_ymd_opt(2025, 12, 25).unwrap())),
         json_val: Set(json!({"key": "value", "number": 42, "nested": {"a": 1}})),
         json_nullable: Set(Some(json!(["array", "of", "strings"]))),
     }
@@ -51,6 +53,8 @@ fn create_test_model_with_nulls(id: &str) -> all_types::ActiveModel {
         bytes_nullable: Set(None),
         timestamp_val: Set(Utc::now()),
         timestamp_nullable: Set(None),
+        date_val: Set(NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()),
+        date_nullable: Set(None),
         json_val: Set(json!({})),
         json_nullable: Set(None),
     }
@@ -556,6 +560,84 @@ mod timestamp_type_tests {
             .expect("Select failed")
             .expect("Entity not found");
         assert!(selected.timestamp_nullable.is_none());
+    }
+}
+
+mod date_type_tests {
+    use super::*;
+
+    #[tokio::test]
+    #[serial]
+    async fn test_date_insert_and_select() {
+        let db = setup_test_database().await;
+        let id = uuid::Uuid::new_v4().to_string();
+
+        let date_val = NaiveDate::from_ymd_opt(2026, 1, 26).unwrap();
+        let date_nullable = NaiveDate::from_ymd_opt(2025, 12, 25).unwrap();
+
+        let model = all_types::ActiveModel {
+            date_val: Set(date_val),
+            date_nullable: Set(Some(date_nullable)),
+            ..create_test_model(&id)
+        };
+
+        let inserted = model.insert(&db).await.expect("Insert failed");
+        assert_eq!(inserted.date_val, date_val);
+        assert_eq!(inserted.date_nullable, Some(date_nullable));
+
+        let selected = all_types::Entity::find_by_id(&id)
+            .one(&db)
+            .await
+            .expect("Select failed")
+            .expect("Entity not found");
+        assert_eq!(selected.date_val, date_val);
+        assert_eq!(selected.date_nullable, Some(date_nullable));
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_date_nullable_null() {
+        let db = setup_test_database().await;
+        let id = uuid::Uuid::new_v4().to_string();
+
+        let model = all_types::ActiveModel {
+            date_nullable: Set(None),
+            ..create_test_model(&id)
+        };
+
+        let inserted = model.insert(&db).await.expect("Insert failed");
+        assert!(inserted.date_nullable.is_none());
+
+        let selected = all_types::Entity::find_by_id(&id)
+            .one(&db)
+            .await
+            .expect("Select failed")
+            .expect("Entity not found");
+        assert!(selected.date_nullable.is_none());
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_date_edge_cases() {
+        let db = setup_test_database().await;
+        let id = uuid::Uuid::new_v4().to_string();
+
+        let min_date = NaiveDate::from_ymd_opt(1, 1, 1).unwrap();
+        let model = all_types::ActiveModel {
+            date_val: Set(min_date),
+            date_nullable: Set(None),
+            ..create_test_model(&id)
+        };
+
+        let inserted = model.insert(&db).await.expect("Insert failed");
+        assert_eq!(inserted.date_val, min_date);
+
+        let selected = all_types::Entity::find_by_id(&id)
+            .one(&db)
+            .await
+            .expect("Select failed")
+            .expect("Entity not found");
+        assert_eq!(selected.date_val, min_date);
     }
 }
 

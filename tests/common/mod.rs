@@ -62,6 +62,8 @@ const ALL_DDL: &[&str] = &[
         bytes_nullable BYTES(MAX),
         timestamp_val TIMESTAMP NOT NULL,
         timestamp_nullable TIMESTAMP,
+        date_val DATE NOT NULL,
+        date_nullable DATE,
         json_val JSON NOT NULL,
         json_nullable JSON,
     ) PRIMARY KEY (id)",
