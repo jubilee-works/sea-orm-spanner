@@ -10,7 +10,10 @@ mod proxy;
 pub mod uuid_support;
 
 pub use array_support::*;
-pub use database::SpannerDatabase;
+pub use database::{
+    ensure_database, ensure_instance, CreateOptions, DatabaseDialect, DatabasePath, InstanceConfig,
+    SpannerDatabase,
+};
 pub use error::SpannerDbErr;
 #[cfg(feature = "with-json")]
 pub use json_support::{SpannerJson, SpannerOptionalJson};
