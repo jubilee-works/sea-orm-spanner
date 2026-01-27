@@ -192,7 +192,10 @@ impl SpannerDatabase {
         Self::connect(database).await
     }
     
-    /// Connect to Spanner, creating the instance and/or database if they don't exist
+    /// Connect to Spanner emulator, creating instance and/or database if they don't exist
+    /// 
+    /// **Note**: This function only works with the Spanner emulator (localhost:9010).
+    /// It will fail if `SPANNER_EMULATOR_HOST` is not set.
     /// 
     /// # Example
     /// 
@@ -200,30 +203,34 @@ impl SpannerDatabase {
     /// use sea_orm_spanner::{SpannerDatabase, CreateOptions};
     /// 
     /// // Create database if not exists (default behavior)
-    /// let db = SpannerDatabase::connect_or_create(
-    ///     "projects/my-project/instances/my-instance/databases/my-db",
+    /// let db = SpannerDatabase::connect_or_create_with_emulator(
+    ///     "projects/test/instances/test/databases/test",
     ///     CreateOptions::default(),
     /// ).await?;
     /// 
-    /// // Also create instance if not exists (for emulator/testing)
-    /// let db = SpannerDatabase::connect_or_create(
+    /// // Also create instance if not exists
+    /// let db = SpannerDatabase::connect_or_create_with_emulator(
     ///     "projects/test/instances/test/databases/test",
     ///     CreateOptions::new().with_instance_creation(),
     /// ).await?;
     /// ```
-    pub async fn connect_or_create(
+    pub async fn connect_or_create_with_emulator(
         database: &str,
         options: CreateOptions,
     ) -> Result<DatabaseConnection, DbErr> {
-        Self::connect_or_create_with_config(database, options, ClientConfig::default()).await
+        Self::connect_or_create_with_emulator_host(database, "localhost:9010", options).await
     }
     
-    /// Connect to Spanner with custom client config, creating instance/database if needed
-    pub async fn connect_or_create_with_config(
+    /// Connect to Spanner emulator at custom host, creating instance/database if needed
+    /// 
+    /// **Note**: This function only works with the Spanner emulator.
+    pub async fn connect_or_create_with_emulator_host(
         database: &str,
+        emulator_host: &str,
         options: CreateOptions,
-        client_config: ClientConfig,
     ) -> Result<DatabaseConnection, DbErr> {
+        std::env::set_var("SPANNER_EMULATOR_HOST", emulator_host);
+        
         let path = DatabasePath::parse(database)?;
         
         if options.create_instance_if_not_exists {
@@ -234,30 +241,25 @@ impl SpannerDatabase {
             ensure_database(&path, options.database_dialect).await?;
         }
         
-        Self::connect_with_config(database, client_config).await
+        Self::connect(database).await
     }
 }
 
-/// Ensure the Spanner instance exists, creating it if necessary
+fn require_emulator() -> Result<(), DbErr> {
+    if std::env::var("SPANNER_EMULATOR_HOST").is_err() {
+        return Err(DbErr::Custom(
+            "SPANNER_EMULATOR_HOST not set. Auto-provisioning only works with emulator to prevent accidental cloud resource creation.".to_string()
+        ));
+    }
+    Ok(())
+}
+
+/// Ensure the Spanner instance exists, creating it if necessary.
 /// 
-/// # Arguments
-/// 
-/// * `path` - Parsed database path containing project and instance info
-/// * `config` - Configuration for instance creation
-/// 
-/// # Returns
-/// 
-/// Returns `Ok(true)` if instance was created, `Ok(false)` if it already existed
-/// 
-/// # Example
-/// 
-/// ```rust,ignore
-/// use sea_orm_spanner::{ensure_instance, DatabasePath, InstanceConfig};
-/// 
-/// let path = DatabasePath::parse("projects/my-project/instances/my-instance/databases/my-db")?;
-/// let created = ensure_instance(&path, &InstanceConfig::default()).await?;
-/// ```
+/// **Emulator only**: Requires `SPANNER_EMULATOR_HOST` environment variable.
 pub async fn ensure_instance(path: &DatabasePath, config: &InstanceConfig) -> Result<bool, DbErr> {
+    require_emulator()?;
+    
     let admin_client = AdminClient::new(AdminClientConfig::default())
         .await
         .map_err(|e| SpannerDbErr::Connection(format!("Failed to create admin client: {}", e)))?;
@@ -313,26 +315,12 @@ pub async fn ensure_instance(path: &DatabasePath, config: &InstanceConfig) -> Re
     }
 }
 
-/// Ensure the Spanner database exists, creating it if necessary
+/// Ensure the Spanner database exists, creating it if necessary.
 /// 
-/// # Arguments
-/// 
-/// * `path` - Parsed database path containing project, instance, and database info
-/// * `dialect` - Database dialect (GoogleStandardSql or PostgreSql)
-/// 
-/// # Returns
-/// 
-/// Returns `Ok(true)` if database was created, `Ok(false)` if it already existed
-/// 
-/// # Example
-/// 
-/// ```rust,ignore
-/// use sea_orm_spanner::{ensure_database, DatabasePath, DatabaseDialect};
-/// 
-/// let path = DatabasePath::parse("projects/my-project/instances/my-instance/databases/my-db")?;
-/// let created = ensure_database(&path, DatabaseDialect::GoogleStandardSql).await?;
-/// ```
+/// **Emulator only**: Requires `SPANNER_EMULATOR_HOST` environment variable.
 pub async fn ensure_database(path: &DatabasePath, dialect: DatabaseDialect) -> Result<bool, DbErr> {
+    require_emulator()?;
+    
     let admin_client = AdminClient::new(AdminClientConfig::default())
         .await
         .map_err(|e| SpannerDbErr::Connection(format!("Failed to create admin client: {}", e)))?;
