@@ -25,8 +25,8 @@ pub struct Model {
     pub bytes_val: Vec<u8>,
     pub bytes_nullable: Option<Vec<u8>>,
 
-    pub timestamp_val: DateTimeUtc,
-    pub timestamp_nullable: Option<DateTimeUtc>,
+    pub timestamp_val: DateTime,
+    pub timestamp_nullable: Option<DateTime>,
 
     pub date_val: Date,
     pub date_nullable: Option<Date>,

@@ -24,7 +24,7 @@ mod insert_tests {
             email: Set("alice@example.com".to_string()),
             age: Set(Some(25)),
             active: Set(true),
-            created_at: Set(Utc::now()),
+            created_at: Set(Utc::now().naive_utc()),
         };
 
         let result = new_user.insert(&db).await;
@@ -46,7 +46,7 @@ mod insert_tests {
             email: Set("bob@example.com".to_string()),
             age: Set(None),
             active: Set(false),
-            created_at: Set(Utc::now()),
+            created_at: Set(Utc::now().naive_utc()),
         };
 
         let result = new_user.insert(&db).await;
@@ -97,7 +97,7 @@ mod select_tests {
                 email: Set(email.to_string()),
                 age: Set(age),
                 active: Set(active),
-                created_at: Set(Utc::now()),
+                created_at: Set(Utc::now().naive_utc()),
             };
             u.insert(db).await.unwrap();
         }
@@ -284,7 +284,7 @@ mod update_tests {
             email: Set("original@example.com".to_string()),
             age: Set(Some(20)),
             active: Set(true),
-            created_at: Set(Utc::now()),
+            created_at: Set(Utc::now().naive_utc()),
         };
         new_user.insert(&db).await.unwrap();
 
@@ -318,7 +318,7 @@ mod update_tests {
             email: Set("original@example.com".to_string()),
             age: Set(Some(20)),
             active: Set(true),
-            created_at: Set(Utc::now()),
+            created_at: Set(Utc::now().naive_utc()),
         };
         new_user.insert(&db).await.unwrap();
 
@@ -355,7 +355,7 @@ mod update_tests {
             email: Set("test@example.com".to_string()),
             age: Set(Some(25)),
             active: Set(true),
-            created_at: Set(Utc::now()),
+            created_at: Set(Utc::now().naive_utc()),
         };
         new_user.insert(&db).await.unwrap();
 
@@ -392,7 +392,7 @@ mod delete_tests {
             email: Set("delete@example.com".to_string()),
             age: Set(None),
             active: Set(true),
-            created_at: Set(Utc::now()),
+            created_at: Set(Utc::now().naive_utc()),
         };
         new_user.insert(&db).await.unwrap();
 
@@ -449,7 +449,7 @@ mod relation_tests {
             email: Set("author@example.com".to_string()),
             age: Set(Some(30)),
             active: Set(true),
-            created_at: Set(Utc::now()),
+            created_at: Set(Utc::now().naive_utc()),
         };
         u.insert(db).await.unwrap();
 
@@ -463,7 +463,7 @@ mod relation_tests {
                 title: Set(format!("Post {}", i)),
                 content: Set(format!("Content of post {}", i)),
                 published: Set(i % 2 == 0),
-                created_at: Set(Utc::now()),
+                created_at: Set(Utc::now().naive_utc()),
             };
             p.insert(db).await.unwrap();
         }

@@ -482,9 +482,9 @@ impl SpannerProxy {
                                     odt.nanosecond(),
                                 )
                                 .unwrap_or(chrono::DateTime::UNIX_EPOCH);
-                                return Value::ChronoDateTimeUtc(Some(Box::new(chrono_dt)));
+                                return Value::ChronoDateTime(Some(Box::new(chrono_dt.naive_utc())));
                             }
-                            return Value::ChronoDateTimeUtc(None);
+                            return Value::ChronoDateTime(None);
                         }
                         Err(e) => {
                             tracing::warn!(

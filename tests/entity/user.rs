@@ -9,7 +9,7 @@ pub struct Model {
     pub email: String,
     pub age: Option<i32>,
     pub active: bool,
-    pub created_at: DateTimeUtc,
+    pub created_at: DateTime,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
