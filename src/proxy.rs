@@ -473,16 +473,27 @@ impl SpannerProxy {
             }
             Ok(TypeCode::Timestamp) => {
                 #[cfg(feature = "with-chrono")]
-                if let Ok(v) = row.column::<Option<time::OffsetDateTime>>(idx) {
-                    if let Some(odt) = v {
-                        let chrono_dt = chrono::DateTime::from_timestamp(
-                            odt.unix_timestamp(),
-                            odt.nanosecond(),
-                        )
-                        .unwrap_or(chrono::DateTime::UNIX_EPOCH);
-                        return Value::ChronoDateTimeUtc(Some(Box::new(chrono_dt)));
+                {
+                    match row.column::<Option<time::OffsetDateTime>>(idx) {
+                        Ok(v) => {
+                            if let Some(odt) = v {
+                                let chrono_dt = chrono::DateTime::from_timestamp(
+                                    odt.unix_timestamp(),
+                                    odt.nanosecond(),
+                                )
+                                .unwrap_or(chrono::DateTime::UNIX_EPOCH);
+                                return Value::ChronoDateTimeUtc(Some(Box::new(chrono_dt)));
+                            }
+                            return Value::ChronoDateTimeUtc(None);
+                        }
+                        Err(e) => {
+                            tracing::warn!(
+                                "Failed to read timestamp column {} as OffsetDateTime: {:?}",
+                                column_name,
+                                e
+                            );
+                        }
                     }
-                    return Value::ChronoDateTimeUtc(None);
                 }
                 #[cfg(not(feature = "with-chrono"))]
                 if let Ok(v) = row.column::<Option<String>>(idx) {

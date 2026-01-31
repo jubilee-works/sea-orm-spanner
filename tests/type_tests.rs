@@ -1,7 +1,7 @@
 mod common;
 mod entity;
 
-use chrono::{NaiveDate, Utc};
+use chrono::{Datelike, NaiveDate, Utc};
 use common::setup_test_database;
 use entity::all_types;
 use sea_orm::{ActiveModelTrait, EntityTrait, Set};
@@ -508,6 +508,57 @@ mod timestamp_type_tests {
             .expect("Entity not found");
         let selected_diff = (selected.timestamp_val - now).num_seconds().abs();
         assert!(selected_diff < 2, "Selected timestamp difference too large");
+    }
+
+    /// Regression test: timestamp read should not return None when data exists
+    /// Bug report: "2026-01-31T07:30:08.391502Z" stored but returns None
+    #[tokio::test]
+    #[serial]
+    async fn test_timestamp_not_none_after_read() {
+        let db = setup_test_database().await;
+        let id = uuid::Uuid::new_v4().to_string();
+
+        let specific_time = Utc.with_ymd_and_hms(2026, 1, 31, 7, 30, 8).unwrap();
+        let model = all_types::ActiveModel {
+            timestamp_val: Set(specific_time),
+            timestamp_nullable: Set(Some(specific_time)),
+            ..create_test_model(&id)
+        };
+
+        let _inserted = model.insert(&db).await.expect("Insert failed");
+
+        let selected = all_types::Entity::find_by_id(&id)
+            .one(&db)
+            .await
+            .expect("Select failed")
+            .expect("Entity not found");
+
+        assert!(
+            selected.timestamp_val.year() >= 2024,
+            "BUG: timestamp_val returned wrong year {}. Expected 2026, got {:?}",
+            selected.timestamp_val.year(),
+            selected.timestamp_val
+        );
+
+        assert!(
+            selected.timestamp_nullable.is_some(),
+            "BUG: timestamp_nullable returned None when it should have a value"
+        );
+
+        let nullable_val = selected.timestamp_nullable.unwrap();
+        assert!(
+            nullable_val.year() >= 2024,
+            "BUG: timestamp_nullable returned wrong year {}. Expected 2026, got {:?}",
+            nullable_val.year(),
+            nullable_val
+        );
+
+        let diff = (selected.timestamp_val - specific_time).num_seconds().abs();
+        assert!(
+            diff < 2,
+            "timestamp_val differs from inserted value by {} seconds",
+            diff
+        );
     }
 
     #[tokio::test]
