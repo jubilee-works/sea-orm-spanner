@@ -518,7 +518,10 @@ mod timestamp_type_tests {
         let db = setup_test_database().await;
         let id = uuid::Uuid::new_v4().to_string();
 
-        let specific_time = Utc.with_ymd_and_hms(2026, 1, 31, 7, 30, 8).unwrap().naive_utc();
+        let specific_time = Utc
+            .with_ymd_and_hms(2026, 1, 31, 7, 30, 8)
+            .unwrap()
+            .naive_utc();
         let model = all_types::ActiveModel {
             timestamp_val: Set(specific_time),
             timestamp_nullable: Set(Some(specific_time)),
@@ -567,7 +570,10 @@ mod timestamp_type_tests {
         let db = setup_test_database().await;
         let id = uuid::Uuid::new_v4().to_string();
 
-        let specific_time = Utc.with_ymd_and_hms(2024, 6, 15, 12, 30, 45).unwrap().naive_utc();
+        let specific_time = Utc
+            .with_ymd_and_hms(2024, 6, 15, 12, 30, 45)
+            .unwrap()
+            .naive_utc();
         let model = all_types::ActiveModel {
             timestamp_val: Set(specific_time),
             timestamp_nullable: Set(Some(specific_time)),
