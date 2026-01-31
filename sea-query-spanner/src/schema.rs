@@ -7,6 +7,33 @@
 use crate::types::spanner_type_name;
 use sea_query::ColumnType;
 
+/// Quote an identifier if it contains special characters (like hyphens)
+/// that are not allowed in unquoted Spanner identifiers.
+///
+/// Spanner identifiers must:
+/// - Start with a letter (a-z, A-Z) or underscore (_)
+/// - Contain only letters, digits, and underscores
+///
+/// If an identifier contains other characters (like hyphens), it must be quoted with backticks.
+pub fn quote_identifier(name: &str) -> String {
+    // Check if quoting is needed
+    let needs_quoting = name.chars().enumerate().any(|(i, c)| {
+        if i == 0 {
+            // First character must be letter or underscore
+            !(c.is_ascii_alphabetic() || c == '_')
+        } else {
+            // Subsequent characters must be letter, digit, or underscore
+            !(c.is_ascii_alphanumeric() || c == '_')
+        }
+    });
+
+    if needs_quoting {
+        format!("`{}`", name)
+    } else {
+        name.to_string()
+    }
+}
+
 /// Builder for CREATE TABLE statements in Spanner DDL format
 #[derive(Debug, Clone, Default)]
 pub struct SpannerTableBuilder {
@@ -197,14 +224,14 @@ impl SpannerTableBuilder {
 
     /// Build the CREATE TABLE DDL statement
     pub fn build(self) -> String {
-        let mut ddl = format!("CREATE TABLE {} (\n", self.table_name);
+        let mut ddl = format!("CREATE TABLE {} (\n", quote_identifier(&self.table_name));
 
         for (i, col) in self.columns.iter().enumerate() {
             if i > 0 {
                 ddl.push_str(",\n");
             }
             ddl.push_str("  ");
-            ddl.push_str(&col.name);
+            ddl.push_str(&quote_identifier(&col.name));
             ddl.push(' ');
             ddl.push_str(&col.column_type);
 
@@ -229,12 +256,17 @@ impl SpannerTableBuilder {
         }
 
         ddl.push_str("\n) PRIMARY KEY (");
-        ddl.push_str(&self.primary_keys.join(", "));
+        let quoted_pks: Vec<String> = self
+            .primary_keys
+            .iter()
+            .map(|pk| quote_identifier(pk))
+            .collect();
+        ddl.push_str(&quoted_pks.join(", "));
         ddl.push(')');
 
         if let Some(parent) = &self.interleave_in_parent {
             ddl.push_str(",\n  INTERLEAVE IN PARENT ");
-            ddl.push_str(parent);
+            ddl.push_str(&quote_identifier(parent));
             if self.on_delete_cascade {
                 ddl.push_str(" ON DELETE CASCADE");
             }
@@ -338,16 +370,16 @@ impl SpannerIndexBuilder {
         }
 
         ddl.push_str("INDEX ");
-        ddl.push_str(&self.index_name);
+        ddl.push_str(&quote_identifier(&self.index_name));
         ddl.push_str(" ON ");
-        ddl.push_str(&self.table_name);
+        ddl.push_str(&quote_identifier(&self.table_name));
         ddl.push_str(" (");
 
         for (i, (col, order)) in self.columns.iter().enumerate() {
             if i > 0 {
                 ddl.push_str(", ");
             }
-            ddl.push_str(col);
+            ddl.push_str(&quote_identifier(col));
             if let Some(is_desc) = order {
                 ddl.push_str(if *is_desc { " DESC" } else { " ASC" });
             }
@@ -357,13 +389,15 @@ impl SpannerIndexBuilder {
 
         if !self.storing.is_empty() {
             ddl.push_str(" STORING (");
-            ddl.push_str(&self.storing.join(", "));
+            let quoted_storing: Vec<String> =
+                self.storing.iter().map(|s| quote_identifier(s)).collect();
+            ddl.push_str(&quoted_storing.join(", "));
             ddl.push(')');
         }
 
         if let Some(table) = &self.interleave_in {
             ddl.push_str(", INTERLEAVE IN ");
-            ddl.push_str(table);
+            ddl.push_str(&quote_identifier(table));
         }
 
         ddl
@@ -435,7 +469,9 @@ impl SpannerAlterTable {
             Self::AddColumn { table, column } => {
                 let mut ddl = format!(
                     "ALTER TABLE {} ADD COLUMN {} {}",
-                    table, column.name, column.column_type
+                    quote_identifier(&table),
+                    quote_identifier(&column.name),
+                    column.column_type
                 );
                 if column.not_null {
                     ddl.push_str(" NOT NULL");
@@ -448,7 +484,11 @@ impl SpannerAlterTable {
                 ddl
             }
             Self::DropColumn { table, column } => {
-                format!("ALTER TABLE {} DROP COLUMN {}", table, column)
+                format!(
+                    "ALTER TABLE {} DROP COLUMN {}",
+                    quote_identifier(&table),
+                    quote_identifier(&column)
+                )
             }
             Self::AlterColumn {
                 table,
@@ -458,7 +498,11 @@ impl SpannerAlterTable {
                 set_default,
                 drop_default,
             } => {
-                let mut ddl = format!("ALTER TABLE {} ALTER COLUMN {}", table, column);
+                let mut ddl = format!(
+                    "ALTER TABLE {} ALTER COLUMN {}",
+                    quote_identifier(&table),
+                    quote_identifier(&column)
+                );
                 if let Some(t) = new_type {
                     ddl.push(' ');
                     ddl.push_str(&t);
@@ -486,13 +530,17 @@ impl SpannerAlterTable {
                 ref_columns,
                 on_delete,
             } => {
+                let quoted_columns: Vec<String> =
+                    columns.iter().map(|c| quote_identifier(c)).collect();
+                let quoted_ref_columns: Vec<String> =
+                    ref_columns.iter().map(|c| quote_identifier(c)).collect();
                 let mut ddl = format!(
                     "ALTER TABLE {} ADD CONSTRAINT {} FOREIGN KEY ({}) REFERENCES {} ({})",
-                    table,
-                    constraint_name,
-                    columns.join(", "),
-                    ref_table,
-                    ref_columns.join(", ")
+                    quote_identifier(&table),
+                    quote_identifier(&constraint_name),
+                    quoted_columns.join(", "),
+                    quote_identifier(&ref_table),
+                    quoted_ref_columns.join(", ")
                 );
                 if let Some(action) = on_delete {
                     ddl.push_str(" ON DELETE ");
@@ -504,7 +552,11 @@ impl SpannerAlterTable {
                 table,
                 constraint_name,
             } => {
-                format!("ALTER TABLE {} DROP CONSTRAINT {}", table, constraint_name)
+                format!(
+                    "ALTER TABLE {} DROP CONSTRAINT {}",
+                    quote_identifier(&table),
+                    quote_identifier(&constraint_name)
+                )
             }
         }
     }
@@ -583,5 +635,73 @@ mod tests {
     fn test_alter_table_drop_column() {
         let ddl = SpannerAlterTable::drop_column("users", "age").build();
         assert_eq!(ddl, "ALTER TABLE users DROP COLUMN age");
+    }
+
+    #[test]
+    fn test_quote_identifier_simple() {
+        assert_eq!(quote_identifier("users"), "users");
+        assert_eq!(quote_identifier("user_id"), "user_id");
+        assert_eq!(quote_identifier("_private"), "_private");
+        assert_eq!(quote_identifier("Table123"), "Table123");
+    }
+
+    #[test]
+    fn test_quote_identifier_with_hyphen() {
+        assert_eq!(quote_identifier("fk-user-id"), "`fk-user-id`");
+        assert_eq!(
+            quote_identifier("fk-schedule_events-schedule_id"),
+            "`fk-schedule_events-schedule_id`"
+        );
+        assert_eq!(quote_identifier("my-table"), "`my-table`");
+    }
+
+    #[test]
+    fn test_quote_identifier_with_special_chars() {
+        assert_eq!(quote_identifier("table.name"), "`table.name`");
+        assert_eq!(quote_identifier("col:type"), "`col:type`");
+        assert_eq!(quote_identifier("123start"), "`123start`");
+    }
+
+    #[test]
+    fn test_foreign_key_with_hyphen_name() {
+        let ddl = SpannerAlterTable::AddForeignKey {
+            table: "products".to_string(),
+            constraint_name: "fk-product-category".to_string(),
+            columns: vec!["category".to_string()],
+            ref_table: "categories".to_string(),
+            ref_columns: vec!["name".to_string()],
+            on_delete: None,
+        }
+        .build();
+
+        assert_eq!(
+            ddl,
+            "ALTER TABLE products ADD CONSTRAINT `fk-product-category` FOREIGN KEY (category) REFERENCES categories (name)"
+        );
+    }
+
+    #[test]
+    fn test_drop_constraint_with_hyphen_name() {
+        let ddl = SpannerAlterTable::DropConstraint {
+            table: "products".to_string(),
+            constraint_name: "fk-product-category".to_string(),
+        }
+        .build();
+
+        assert_eq!(
+            ddl,
+            "ALTER TABLE products DROP CONSTRAINT `fk-product-category`"
+        );
+    }
+
+    #[test]
+    fn test_index_with_hyphen_name() {
+        let ddl = SpannerIndexBuilder::new()
+            .name("idx-users-email")
+            .table("users")
+            .col("email")
+            .build();
+
+        assert_eq!(ddl, "CREATE INDEX `idx-users-email` ON users (email)");
     }
 }
