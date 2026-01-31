@@ -81,12 +81,12 @@ fn database_path() -> String {
 }
 
 async fn setup_test_database() {
-    use google_cloud_googleapis::spanner::admin::database::v1::{
+    use gcloud_googleapis::spanner::admin::database::v1::{
         CreateDatabaseRequest, DatabaseDialect,
     };
-    use google_cloud_googleapis::spanner::admin::instance::v1::{CreateInstanceRequest, Instance};
-    use google_cloud_spanner::admin::database::database_admin_client::DatabaseAdminClient;
-    use google_cloud_spanner::admin::instance::instance_admin_client::InstanceAdminClient;
+    use gcloud_googleapis::spanner::admin::instance::v1::{CreateInstanceRequest, Instance};
+    use gcloud_spanner::admin::client::Client as AdminClient;
+    use gcloud_spanner::admin::AdminClientConfig;
 
     if std::env::var("SPANNER_EMULATOR_HOST").is_err() {
         panic!("SPANNER_EMULATOR_HOST not set");
@@ -95,8 +95,9 @@ async fn setup_test_database() {
     let project_path = format!("projects/{}", PROJECT);
     let instance_path = format!("{}/instances/{}", project_path, INSTANCE);
 
-    let mut instance_client = InstanceAdminClient::default().await.unwrap();
-    let _ = instance_client
+    let admin_client = AdminClient::new(AdminClientConfig::default()).await.unwrap();
+    let _ = admin_client
+        .instance()
         .create_instance(
             CreateInstanceRequest {
                 parent: project_path,
@@ -109,12 +110,11 @@ async fn setup_test_database() {
                 }),
             },
             None,
-            None,
         )
         .await;
 
-    let db_client = DatabaseAdminClient::default().await.unwrap();
-    let _ = db_client
+    let _ = admin_client
+        .database()
         .create_database(
             CreateDatabaseRequest {
                 parent: instance_path,
@@ -122,8 +122,8 @@ async fn setup_test_database() {
                 extra_statements: vec![],
                 encryption_config: None,
                 database_dialect: DatabaseDialect::GoogleStandardSql.into(),
+                proto_descriptors: vec![],
             },
-            None,
             None,
         )
         .await;

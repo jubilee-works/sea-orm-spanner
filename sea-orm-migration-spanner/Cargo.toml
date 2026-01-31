@@ -21,8 +21,8 @@ sea-orm = { version = "1.1", features = ["runtime-tokio-native-tls", "macros"] }
 sea-orm-migration = { version = "1.1" }
 sea-orm-spanner = { path = ".." }
 sea-query-spanner = { path = "../sea-query-spanner" }
-google-cloud-spanner = "0.12"
-google-cloud-googleapis = { version = "0.6.0", features = ["spanner"] }
+gcloud-spanner = { git = "https://github.com/devgony/google-cloud-rust.git", branch = "support-uuid", features = ["uuid"] }
+gcloud-googleapis = { git = "https://github.com/devgony/google-cloud-rust.git", branch = "support-uuid", features = ["spanner"] }
 async-trait = "0.1"
 tokio = { version = "1", features = ["full"] }
 regex = "1"
@@ -36,7 +36,7 @@ default = []
 
 [dev-dependencies]
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
-google-cloud-spanner = "0.12"
-google-cloud-googleapis = { version = "0.6.0", features = ["spanner"] }
+gcloud-spanner = { git = "https://github.com/devgony/google-cloud-rust.git", branch = "support-uuid", features = ["uuid"] }
+gcloud-googleapis = { git = "https://github.com/devgony/google-cloud-rust.git", branch = "support-uuid", features = ["spanner"] }
 async-trait = "0.1"
 serial_test = "3.3"

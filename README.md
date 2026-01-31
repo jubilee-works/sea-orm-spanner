@@ -46,7 +46,7 @@ pub struct Model {
     pub id: String,
     pub name: String,
     pub email: String,
-    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub created_at: DateTime,  // Use DateTime (NaiveDateTime), not DateTimeUtc
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -72,7 +72,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         id: Set(uuid::Uuid::new_v4().to_string()),
         name: Set("Alice".to_string()),
         email: Set("alice@example.com".to_string()),
-        created_at: Set(chrono::Utc::now()),
+        created_at: Set(chrono::Utc::now().naive_utc()),
     };
     let inserted = user.insert(&db).await?;
 
@@ -275,6 +275,23 @@ pub struct Model {
     pub price: f64,            // Correct: use f64
     // pub price: f32,         // Avoid: will cause type mismatch
 }
+```
+
+#### TIMESTAMP Type
+
+Spanner TIMESTAMP columns must use `DateTime` (`chrono::NaiveDateTime`) in entity definitions, **not** `DateTimeUtc` (`chrono::DateTime<chrono::Utc>`).
+
+```rust
+pub struct Model {
+    pub created_at: DateTime,           // Correct: NaiveDateTime
+    // pub created_at: DateTimeUtc,     // Wrong: will return None on read
+}
+```
+
+Spanner stores all timestamps in UTC. When you need timezone-aware datetime, convert after reading:
+
+```rust
+let utc_time = model.created_at.and_utc();  // NaiveDateTime -> DateTime<Utc>
 ```
 
 #### BYTES vs STRING

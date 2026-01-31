@@ -1,7 +1,7 @@
 mod common;
 mod entity;
 
-use chrono::{NaiveDate, Utc};
+use chrono::{Datelike, NaiveDate, NaiveDateTime, Utc};
 use common::setup_test_database;
 use entity::all_types;
 use sea_orm::{ActiveModelTrait, EntityTrait, Set};
@@ -25,8 +25,8 @@ fn create_test_model(id: &str) -> all_types::ActiveModel {
         bool_nullable: Set(Some(false)),
         bytes_val: Set(vec![0x00, 0x01, 0xFF, 0xFE]),
         bytes_nullable: Set(Some(vec![0xDE, 0xAD, 0xBE, 0xEF])),
-        timestamp_val: Set(Utc::now()),
-        timestamp_nullable: Set(Some(Utc::now())),
+        timestamp_val: Set(Utc::now().naive_utc()),
+        timestamp_nullable: Set(Some(Utc::now().naive_utc())),
         date_val: Set(NaiveDate::from_ymd_opt(2026, 1, 26).unwrap()),
         date_nullable: Set(Some(NaiveDate::from_ymd_opt(2025, 12, 25).unwrap())),
         json_val: Set(json!({"key": "value", "number": 42, "nested": {"a": 1}})),
@@ -51,7 +51,7 @@ fn create_test_model_with_nulls(id: &str) -> all_types::ActiveModel {
         bool_nullable: Set(None),
         bytes_val: Set(vec![0]),
         bytes_nullable: Set(None),
-        timestamp_val: Set(Utc::now()),
+        timestamp_val: Set(Utc::now().naive_utc()),
         timestamp_nullable: Set(None),
         date_val: Set(NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()),
         date_nullable: Set(None),
@@ -486,7 +486,7 @@ mod timestamp_type_tests {
         let db = setup_test_database().await;
         let id = uuid::Uuid::new_v4().to_string();
 
-        let now = Utc::now();
+        let now = Utc::now().naive_utc();
         let model = all_types::ActiveModel {
             timestamp_val: Set(now),
             timestamp_nullable: Set(Some(now)),
@@ -510,13 +510,70 @@ mod timestamp_type_tests {
         assert!(selected_diff < 2, "Selected timestamp difference too large");
     }
 
+    /// Regression test: timestamp read should not return None when data exists
+    /// Bug report: "2026-01-31T07:30:08.391502Z" stored but returns None
+    #[tokio::test]
+    #[serial]
+    async fn test_timestamp_not_none_after_read() {
+        let db = setup_test_database().await;
+        let id = uuid::Uuid::new_v4().to_string();
+
+        let specific_time = Utc
+            .with_ymd_and_hms(2026, 1, 31, 7, 30, 8)
+            .unwrap()
+            .naive_utc();
+        let model = all_types::ActiveModel {
+            timestamp_val: Set(specific_time),
+            timestamp_nullable: Set(Some(specific_time)),
+            ..create_test_model(&id)
+        };
+
+        let _inserted = model.insert(&db).await.expect("Insert failed");
+
+        let selected = all_types::Entity::find_by_id(&id)
+            .one(&db)
+            .await
+            .expect("Select failed")
+            .expect("Entity not found");
+
+        assert!(
+            selected.timestamp_val.and_utc().year() >= 2024,
+            "BUG: timestamp_val returned wrong year {}. Expected 2026, got {:?}",
+            selected.timestamp_val.and_utc().year(),
+            selected.timestamp_val
+        );
+
+        assert!(
+            selected.timestamp_nullable.is_some(),
+            "BUG: timestamp_nullable returned None when it should have a value"
+        );
+
+        let nullable_val = selected.timestamp_nullable.unwrap();
+        assert!(
+            nullable_val.and_utc().year() >= 2024,
+            "BUG: timestamp_nullable returned wrong year {}. Expected 2026, got {:?}",
+            nullable_val.and_utc().year(),
+            nullable_val
+        );
+
+        let diff = (selected.timestamp_val - specific_time).num_seconds().abs();
+        assert!(
+            diff < 2,
+            "timestamp_val differs from inserted value by {} seconds",
+            diff
+        );
+    }
+
     #[tokio::test]
     #[serial]
     async fn test_timestamp_specific_date() {
         let db = setup_test_database().await;
         let id = uuid::Uuid::new_v4().to_string();
 
-        let specific_time = Utc.with_ymd_and_hms(2024, 6, 15, 12, 30, 45).unwrap();
+        let specific_time = Utc
+            .with_ymd_and_hms(2024, 6, 15, 12, 30, 45)
+            .unwrap()
+            .naive_utc();
         let model = all_types::ActiveModel {
             timestamp_val: Set(specific_time),
             timestamp_nullable: Set(Some(specific_time)),
@@ -524,20 +581,14 @@ mod timestamp_type_tests {
         };
 
         let inserted = model.insert(&db).await.expect("Insert failed");
-        assert_eq!(
-            inserted.timestamp_val.date_naive(),
-            specific_time.date_naive()
-        );
+        assert_eq!(inserted.timestamp_val.date(), specific_time.date());
 
         let selected = all_types::Entity::find_by_id(&id)
             .one(&db)
             .await
             .expect("Select failed")
             .expect("Entity not found");
-        assert_eq!(
-            selected.timestamp_val.date_naive(),
-            specific_time.date_naive()
-        );
+        assert_eq!(selected.timestamp_val.date(), specific_time.date());
     }
 
     #[tokio::test]
