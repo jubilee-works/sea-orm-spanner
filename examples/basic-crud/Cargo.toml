@@ -9,8 +9,8 @@ publish = false
 [dependencies]
 sea-orm-spanner = { path = "../..", features = ["with-chrono", "with-uuid"] }
 sea-orm = { version = "1.1", features = ["macros", "with-chrono", "with-uuid", "runtime-tokio-native-tls"] }
-google-cloud-spanner = "0.12"
-google-cloud-googleapis = { version = "0.6.0", features = ["spanner"] }
+gcloud-spanner = { git = "https://github.com/devgony/google-cloud-rust.git", branch = "support-uuid", features = ["uuid"] }
+gcloud-googleapis = { git = "https://github.com/devgony/google-cloud-rust.git", branch = "support-uuid", features = ["spanner"] }
 tokio = { version = "1", features = ["full"] }
 uuid = { version = "1", features = ["v4"] }
 chrono = "0.4"

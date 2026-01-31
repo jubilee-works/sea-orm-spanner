@@ -106,18 +106,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 async fn setup_emulator_database() -> Result<(), Box<dyn std::error::Error>> {
-    use google_cloud_googleapis::spanner::admin::database::v1::{
+    use gcloud_googleapis::spanner::admin::database::v1::{
         CreateDatabaseRequest, DatabaseDialect,
     };
-    use google_cloud_googleapis::spanner::admin::instance::v1::{CreateInstanceRequest, Instance};
-    use google_cloud_spanner::admin::database::database_admin_client::DatabaseAdminClient;
-    use google_cloud_spanner::admin::instance::instance_admin_client::InstanceAdminClient;
+    use gcloud_googleapis::spanner::admin::instance::v1::{CreateInstanceRequest, Instance};
+    use gcloud_spanner::admin::client::Client as AdminClient;
+    use gcloud_spanner::admin::AdminClientConfig;
 
     let project_path = format!("projects/{}", PROJECT);
     let instance_path = format!("{}/instances/{}", project_path, INSTANCE);
 
-    let mut instance_client = InstanceAdminClient::default().await?;
-    let create_result = instance_client
+    let admin_client = AdminClient::new(AdminClientConfig::default()).await?;
+    let create_result = admin_client
+        .instance()
         .create_instance(
             CreateInstanceRequest {
                 parent: project_path.clone(),
@@ -130,13 +131,12 @@ async fn setup_emulator_database() -> Result<(), Box<dyn std::error::Error>> {
                 }),
             },
             None,
-            None,
         )
         .await;
 
     match create_result {
         Ok(mut op) => {
-            let _ = op.wait(None, None).await;
+            let _ = op.wait(None).await;
         }
         Err(e) => {
             let msg = e.to_string().to_lowercase();
@@ -146,8 +146,8 @@ async fn setup_emulator_database() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    let db_client = DatabaseAdminClient::default().await?;
-    let db_result = db_client
+    let db_result = admin_client
+        .database()
         .create_database(
             CreateDatabaseRequest {
                 parent: instance_path.clone(),
@@ -161,15 +161,15 @@ async fn setup_emulator_database() -> Result<(), Box<dyn std::error::Error>> {
                     .to_string()],
                 encryption_config: None,
                 database_dialect: DatabaseDialect::GoogleStandardSql.into(),
+                proto_descriptors: vec![],
             },
-            None,
             None,
         )
         .await;
 
     match db_result {
         Ok(mut op) => {
-            let _ = op.wait(None, None).await;
+            let _ = op.wait(None).await;
         }
         Err(e) => {
             let msg = e.to_string().to_lowercase();

@@ -1,5 +1,6 @@
-use google_cloud_googleapis::spanner::admin::database::v1::UpdateDatabaseDdlRequest;
-use google_cloud_spanner::admin::database::database_admin_client::DatabaseAdminClient;
+use gcloud_googleapis::spanner::admin::database::v1::UpdateDatabaseDdlRequest;
+use gcloud_spanner::admin::client::Client as AdminClient;
+use gcloud_spanner::admin::AdminClientConfig;
 use regex::Regex;
 use sea_orm::sea_query::{
     backend::MysqlQueryBuilder, IndexCreateStatement, IndexDropStatement, TableAlterStatement,
@@ -183,25 +184,27 @@ impl SchemaManager {
 
     /// Execute multiple DDL statements
     pub async fn execute_ddl(&self, statements: Vec<String>) -> Result<(), DbErr> {
-        let db_client = DatabaseAdminClient::default()
+        let admin_client = AdminClient::new(AdminClientConfig::default())
             .await
             .map_err(|e| DbErr::Custom(format!("Failed to create admin client: {}", e)))?;
 
-        let result = db_client
+        let result = admin_client
+            .database()
             .update_database_ddl(
                 UpdateDatabaseDdlRequest {
                     database: self.database_path.clone(),
                     statements,
                     operation_id: "".to_string(),
+                    proto_descriptors: vec![],
+                    throughput_mode: false,
                 },
-                None,
                 None,
             )
             .await;
 
         match result {
             Ok(mut op) => {
-                op.wait(None, None)
+                op.wait(None)
                     .await
                     .map_err(|e| DbErr::Custom(format!("DDL operation failed: {}", e)))?;
                 Ok(())
