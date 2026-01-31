@@ -28,7 +28,7 @@ impl From<DatabaseDialect> for i32 {
 }
 
 /// Configuration for Spanner instance creation
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct InstanceConfig {
     /// Display name for the instance
     pub display_name: Option<String>,
@@ -39,17 +39,6 @@ pub struct InstanceConfig {
     pub node_count: Option<i32>,
     /// Processing units (alternative to node_count)
     pub processing_units: Option<i32>,
-}
-
-impl Default for InstanceConfig {
-    fn default() -> Self {
-        Self {
-            display_name: None,
-            config: None,
-            node_count: None,
-            processing_units: None,
-        }
-    }
 }
 
 /// Options for creating Spanner instance and database
