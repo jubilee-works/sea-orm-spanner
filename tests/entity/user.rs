@@ -7,7 +7,7 @@ pub struct Model {
     pub id: String,
     pub name: String,
     pub email: String,
-    pub age: Option<i32>,
+    pub age: Option<i64>,
     pub active: bool,
     pub created_at: DateTime,
 }
