@@ -442,33 +442,75 @@ impl SpannerProxy {
 
         match TypeCode::try_from(type_code) {
             Ok(TypeCode::Bool) => {
-                if let Ok(v) = row.column::<Option<bool>>(idx) {
-                    return Value::Bool(v);
+                match row.column::<Option<bool>>(idx) {
+                    Ok(v) => return Value::Bool(v),
+                    Err(e) => {
+                        tracing::warn!(
+                            "Failed to read BOOL column {} at index {}: {:?}",
+                            column_name,
+                            idx,
+                            e
+                        );
+                    }
                 }
             }
             Ok(TypeCode::Int64) => {
-                if let Ok(v) = row.column::<Option<i64>>(idx) {
-                    if let Some(val) = v {
-                        if val >= i32::MIN as i64 && val <= i32::MAX as i64 {
-                            return Value::Int(Some(val as i32));
+                match row.column::<Option<i64>>(idx) {
+                    Ok(v) => {
+                        if let Some(val) = v {
+                            if val >= i32::MIN as i64 && val <= i32::MAX as i64 {
+                                return Value::Int(Some(val as i32));
+                            }
                         }
+                        return Value::BigInt(v);
                     }
-                    return Value::BigInt(v);
+                    Err(e) => {
+                        tracing::warn!(
+                            "Failed to read INT64 column {} at index {}: {:?}",
+                            column_name,
+                            idx,
+                            e
+                        );
+                    }
                 }
             }
             Ok(TypeCode::Float64 | TypeCode::Float32) => {
-                if let Ok(v) = row.column::<Option<f64>>(idx) {
-                    return Value::Double(v);
+                match row.column::<Option<f64>>(idx) {
+                    Ok(v) => return Value::Double(v),
+                    Err(e) => {
+                        tracing::warn!(
+                            "Failed to read FLOAT64 column {} at index {}: {:?}",
+                            column_name,
+                            idx,
+                            e
+                        );
+                    }
                 }
             }
             Ok(TypeCode::String) => {
-                if let Ok(v) = row.column::<Option<String>>(idx) {
-                    return Value::String(v.map(Box::new));
+                match row.column::<Option<String>>(idx) {
+                    Ok(v) => return Value::String(v.map(Box::new)),
+                    Err(e) => {
+                        tracing::warn!(
+                            "Failed to read STRING column {} at index {}: {:?}",
+                            column_name,
+                            idx,
+                            e
+                        );
+                    }
                 }
             }
             Ok(TypeCode::Bytes) => {
-                if let Ok(v) = row.column::<Option<Vec<u8>>>(idx) {
-                    return Value::Bytes(v.map(Box::new));
+                match row.column::<Option<Vec<u8>>>(idx) {
+                    Ok(v) => return Value::Bytes(v.map(Box::new)),
+                    Err(e) => {
+                        tracing::warn!(
+                            "Failed to read BYTES column {} at index {}: {:?}",
+                            column_name,
+                            idx,
+                            e
+                        );
+                    }
                 }
             }
             Ok(TypeCode::Timestamp) => {
@@ -567,8 +609,39 @@ impl SpannerProxy {
             _ => {}
         }
 
+        tracing::debug!(
+            "Type code {} for column {} - attempting fallback type detection",
+            type_code,
+            column_name
+        );
+
+        if let Ok(v) = row.column::<Option<i64>>(idx) {
+            tracing::debug!("Fallback: read {} as INT64", column_name);
+            if let Some(val) = v {
+                if val >= i32::MIN as i64 && val <= i32::MAX as i64 {
+                    return Value::Int(Some(val as i32));
+                }
+            }
+            return Value::BigInt(v);
+        }
+
+        if let Ok(v) = row.column::<Option<f64>>(idx) {
+            tracing::debug!("Fallback: read {} as FLOAT64", column_name);
+            return Value::Double(v);
+        }
+
+        if let Ok(v) = row.column::<Option<String>>(idx) {
+            tracing::debug!("Fallback: read {} as STRING", column_name);
+            return Value::String(v.map(Box::new));
+        }
+
+        if let Ok(v) = row.column::<Option<bool>>(idx) {
+            tracing::debug!("Fallback: read {} as BOOL", column_name);
+            return Value::Bool(v);
+        }
+
         tracing::warn!(
-            "Unknown column type {} for {}, returning null",
+            "Unknown column type {} for {} - all fallback attempts failed",
             type_code,
             column_name
         );
