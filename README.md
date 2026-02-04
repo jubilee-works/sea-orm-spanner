@@ -253,16 +253,14 @@ Spanner has a limited set of native types compared to other databases. This libr
 
 #### Integer Types
 
-Spanner only has `INT64`. When reading values:
-- Values in i32 range (-2147483648 to 2147483647) are returned as `i32`
-- Values outside i32 range are returned as `i64`
+Spanner only has `INT64`. All integer values are returned as `i64`.
 
-**Recommendation**: Use `i32` for entity fields that will always contain small values. Use `i64` with values outside i32 range to ensure correct type mapping.
+**Recommendation**: Use `i64` for all integer fields in your entities.
 
 ```rust
 pub struct Model {
-    pub small_count: i32,      // For values that fit in i32
-    pub large_id: i64,         // Use values > i32::MAX or < i32::MIN
+    pub count: i64,
+    pub user_id: i64,
 }
 ```
 

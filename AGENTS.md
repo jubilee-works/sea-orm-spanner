@@ -1,3 +1,4 @@
 - Don't switch branch without asking
 - Commit on each changes
 - Use the newest version crate possible
+- Run `cargo fmt` right before push

@@ -8,7 +8,7 @@ pub struct Model {
     pub category_id: String,
     pub name: String,
     pub price: f64,
-    pub quantity: i32,
+    pub quantity: i64,
     pub active: bool,
 }
 

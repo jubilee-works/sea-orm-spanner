@@ -441,36 +441,61 @@ impl SpannerProxy {
             .unwrap_or(0);
 
         match TypeCode::try_from(type_code) {
-            Ok(TypeCode::Bool) => {
-                if let Ok(v) = row.column::<Option<bool>>(idx) {
-                    return Value::Bool(v);
+            Ok(TypeCode::Bool) => match row.column::<Option<bool>>(idx) {
+                Ok(v) => return Value::Bool(v),
+                Err(e) => {
+                    tracing::warn!(
+                        "Failed to read BOOL column {} at index {}: {:?}",
+                        column_name,
+                        idx,
+                        e
+                    );
                 }
-            }
-            Ok(TypeCode::Int64) => {
-                if let Ok(v) = row.column::<Option<i64>>(idx) {
-                    if let Some(val) = v {
-                        if val >= i32::MIN as i64 && val <= i32::MAX as i64 {
-                            return Value::Int(Some(val as i32));
-                        }
-                    }
-                    return Value::BigInt(v);
+            },
+            Ok(TypeCode::Int64) => match row.column::<Option<i64>>(idx) {
+                Ok(v) => return Value::BigInt(v),
+                Err(e) => {
+                    tracing::warn!(
+                        "Failed to read INT64 column {} at index {}: {:?}",
+                        column_name,
+                        idx,
+                        e
+                    );
                 }
-            }
-            Ok(TypeCode::Float64 | TypeCode::Float32) => {
-                if let Ok(v) = row.column::<Option<f64>>(idx) {
-                    return Value::Double(v);
+            },
+            Ok(TypeCode::Float64 | TypeCode::Float32) => match row.column::<Option<f64>>(idx) {
+                Ok(v) => return Value::Double(v),
+                Err(e) => {
+                    tracing::warn!(
+                        "Failed to read FLOAT64 column {} at index {}: {:?}",
+                        column_name,
+                        idx,
+                        e
+                    );
                 }
-            }
-            Ok(TypeCode::String) => {
-                if let Ok(v) = row.column::<Option<String>>(idx) {
-                    return Value::String(v.map(Box::new));
+            },
+            Ok(TypeCode::String) => match row.column::<Option<String>>(idx) {
+                Ok(v) => return Value::String(v.map(Box::new)),
+                Err(e) => {
+                    tracing::warn!(
+                        "Failed to read STRING column {} at index {}: {:?}",
+                        column_name,
+                        idx,
+                        e
+                    );
                 }
-            }
-            Ok(TypeCode::Bytes) => {
-                if let Ok(v) = row.column::<Option<Vec<u8>>>(idx) {
-                    return Value::Bytes(v.map(Box::new));
+            },
+            Ok(TypeCode::Bytes) => match row.column::<Option<Vec<u8>>>(idx) {
+                Ok(v) => return Value::Bytes(v.map(Box::new)),
+                Err(e) => {
+                    tracing::warn!(
+                        "Failed to read BYTES column {} at index {}: {:?}",
+                        column_name,
+                        idx,
+                        e
+                    );
                 }
-            }
+            },
             Ok(TypeCode::Timestamp) => {
                 #[cfg(feature = "with-chrono")]
                 {
@@ -567,8 +592,34 @@ impl SpannerProxy {
             _ => {}
         }
 
+        tracing::debug!(
+            "Type code {} for column {} - attempting fallback type detection",
+            type_code,
+            column_name
+        );
+
+        if let Ok(v) = row.column::<Option<i64>>(idx) {
+            tracing::debug!("Fallback: read {} as INT64", column_name);
+            return Value::BigInt(v);
+        }
+
+        if let Ok(v) = row.column::<Option<f64>>(idx) {
+            tracing::debug!("Fallback: read {} as FLOAT64", column_name);
+            return Value::Double(v);
+        }
+
+        if let Ok(v) = row.column::<Option<String>>(idx) {
+            tracing::debug!("Fallback: read {} as STRING", column_name);
+            return Value::String(v.map(Box::new));
+        }
+
+        if let Ok(v) = row.column::<Option<bool>>(idx) {
+            tracing::debug!("Fallback: read {} as BOOL", column_name);
+            return Value::Bool(v);
+        }
+
         tracing::warn!(
-            "Unknown column type {} for {}, returning null",
+            "Unknown column type {} for {} - all fallback attempts failed",
             type_code,
             column_name
         );
@@ -637,7 +688,7 @@ impl SpannerProxy {
     fn extract_column_names_from_statement(statement: &Statement) -> Vec<String> {
         let sql = statement.sql.to_uppercase();
         if let Some(select_pos) = sql.find("SELECT") {
-            if let Some(from_pos) = sql.find("FROM") {
+            if let Some(from_pos) = Self::find_top_level_from(&sql, select_pos + 6) {
                 let columns_part = &statement.sql[select_pos + 6..from_pos];
                 return columns_part
                     .split(',')
@@ -666,6 +717,33 @@ impl SpannerProxy {
             }
         }
         Vec::new()
+    }
+
+    fn find_top_level_from(sql: &str, start: usize) -> Option<usize> {
+        let bytes = sql.as_bytes();
+        let mut paren_depth: i32 = 0;
+        let mut i = start;
+
+        while i < bytes.len() {
+            match bytes[i] {
+                b'(' => paren_depth += 1,
+                b')' => paren_depth = paren_depth.saturating_sub(1),
+                b'F' if paren_depth == 0 => {
+                    if sql[i..].starts_with("FROM") {
+                        let next_idx = i + 4;
+                        if next_idx >= bytes.len()
+                            || !bytes[next_idx].is_ascii_alphanumeric()
+                            || bytes[next_idx] == b'_'
+                        {
+                            return Some(i);
+                        }
+                    }
+                }
+                _ => {}
+            }
+            i += 1;
+        }
+        None
     }
 }
 
