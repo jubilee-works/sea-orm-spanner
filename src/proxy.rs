@@ -441,78 +441,68 @@ impl SpannerProxy {
             .unwrap_or(0);
 
         match TypeCode::try_from(type_code) {
-            Ok(TypeCode::Bool) => {
-                match row.column::<Option<bool>>(idx) {
-                    Ok(v) => return Value::Bool(v),
-                    Err(e) => {
-                        tracing::warn!(
-                            "Failed to read BOOL column {} at index {}: {:?}",
-                            column_name,
-                            idx,
-                            e
-                        );
-                    }
+            Ok(TypeCode::Bool) => match row.column::<Option<bool>>(idx) {
+                Ok(v) => return Value::Bool(v),
+                Err(e) => {
+                    tracing::warn!(
+                        "Failed to read BOOL column {} at index {}: {:?}",
+                        column_name,
+                        idx,
+                        e
+                    );
                 }
-            }
-            Ok(TypeCode::Int64) => {
-                match row.column::<Option<i64>>(idx) {
-                    Ok(v) => {
-                        if let Some(val) = v {
-                            if val >= i32::MIN as i64 && val <= i32::MAX as i64 {
-                                return Value::Int(Some(val as i32));
-                            }
+            },
+            Ok(TypeCode::Int64) => match row.column::<Option<i64>>(idx) {
+                Ok(v) => {
+                    if let Some(val) = v {
+                        if val >= i32::MIN as i64 && val <= i32::MAX as i64 {
+                            return Value::Int(Some(val as i32));
                         }
-                        return Value::BigInt(v);
                     }
-                    Err(e) => {
-                        tracing::warn!(
-                            "Failed to read INT64 column {} at index {}: {:?}",
-                            column_name,
-                            idx,
-                            e
-                        );
-                    }
+                    return Value::BigInt(v);
                 }
-            }
-            Ok(TypeCode::Float64 | TypeCode::Float32) => {
-                match row.column::<Option<f64>>(idx) {
-                    Ok(v) => return Value::Double(v),
-                    Err(e) => {
-                        tracing::warn!(
-                            "Failed to read FLOAT64 column {} at index {}: {:?}",
-                            column_name,
-                            idx,
-                            e
-                        );
-                    }
+                Err(e) => {
+                    tracing::warn!(
+                        "Failed to read INT64 column {} at index {}: {:?}",
+                        column_name,
+                        idx,
+                        e
+                    );
                 }
-            }
-            Ok(TypeCode::String) => {
-                match row.column::<Option<String>>(idx) {
-                    Ok(v) => return Value::String(v.map(Box::new)),
-                    Err(e) => {
-                        tracing::warn!(
-                            "Failed to read STRING column {} at index {}: {:?}",
-                            column_name,
-                            idx,
-                            e
-                        );
-                    }
+            },
+            Ok(TypeCode::Float64 | TypeCode::Float32) => match row.column::<Option<f64>>(idx) {
+                Ok(v) => return Value::Double(v),
+                Err(e) => {
+                    tracing::warn!(
+                        "Failed to read FLOAT64 column {} at index {}: {:?}",
+                        column_name,
+                        idx,
+                        e
+                    );
                 }
-            }
-            Ok(TypeCode::Bytes) => {
-                match row.column::<Option<Vec<u8>>>(idx) {
-                    Ok(v) => return Value::Bytes(v.map(Box::new)),
-                    Err(e) => {
-                        tracing::warn!(
-                            "Failed to read BYTES column {} at index {}: {:?}",
-                            column_name,
-                            idx,
-                            e
-                        );
-                    }
+            },
+            Ok(TypeCode::String) => match row.column::<Option<String>>(idx) {
+                Ok(v) => return Value::String(v.map(Box::new)),
+                Err(e) => {
+                    tracing::warn!(
+                        "Failed to read STRING column {} at index {}: {:?}",
+                        column_name,
+                        idx,
+                        e
+                    );
                 }
-            }
+            },
+            Ok(TypeCode::Bytes) => match row.column::<Option<Vec<u8>>>(idx) {
+                Ok(v) => return Value::Bytes(v.map(Box::new)),
+                Err(e) => {
+                    tracing::warn!(
+                        "Failed to read BYTES column {} at index {}: {:?}",
+                        column_name,
+                        idx,
+                        e
+                    );
+                }
+            },
             Ok(TypeCode::Timestamp) => {
                 #[cfg(feature = "with-chrono")]
                 {
