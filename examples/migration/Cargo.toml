@@ -16,6 +16,6 @@ path = "src/lib.rs"
 
 [dependencies]
 sea-orm-migration-spanner = { path = "../../sea-orm-migration-spanner" }
-sea-orm = { version = "1.1", features = ["runtime-tokio-native-tls"] }
+sea-orm = { git = "https://github.com/devgony/sea-orm.git", branch = "fix/mysql-count", features = ["runtime-tokio-native-tls"] }
 tokio = { version = "1", features = ["full"] }
 async-trait = "0.1"
