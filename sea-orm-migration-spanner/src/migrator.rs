@@ -1,6 +1,6 @@
 use crate::schema_manager::SchemaManager;
-use sea_orm::sea_query::{Alias, Expr, Order, Query};
-use sea_orm::{ActiveValue, ConnectionTrait, DbErr, EntityTrait, QueryFilter};
+use sea_orm::sea_query::{Alias, Order, Query};
+use sea_orm::{ActiveValue, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, QueryFilter};
 use sea_orm_spanner::SpannerDatabase;
 use std::collections::HashSet;
 use std::time::SystemTime;
@@ -90,8 +90,7 @@ pub trait MigratorTrait: Send {
             .order_by(Alias::new("version"), Order::Asc)
             .to_owned();
 
-        let builder = db.get_database_backend();
-        let results = db.query_all(builder.build(&stmt)).await?;
+        let results = db.query_all(&stmt).await?;
 
         let mut versions = HashSet::new();
         for row in results {
@@ -220,7 +219,7 @@ pub trait MigratorTrait: Send {
             migration.migration.down(&schema_manager).await?;
 
             seaql_migrations::Entity::delete_many()
-                .filter(Expr::col(seaql_migrations::Column::Version).eq(migration.name()))
+                .filter(seaql_migrations::Column::Version.eq(migration.name()))
                 .exec(&db)
                 .await?;
 
