@@ -27,6 +27,11 @@ with-rust_decimal = [
     "sea-orm/with-rust_decimal",
     "rust_decimal",
 ]
+macros = ["sea-orm/macros"]
+runtime-tokio-native-tls = ["sea-orm/runtime-tokio-native-tls"]
+runtime-tokio-rustls = ["sea-orm/runtime-tokio-rustls"]
+runtime-async-std-native-tls = ["sea-orm/runtime-async-std-native-tls"]
+runtime-async-std-rustls = ["sea-orm/runtime-async-std-rustls"]
 
 [dependencies]
 sea-orm = { git = "https://github.com/devgony/sea-orm.git", branch = "fix/mysql-count", default-features = false, features = ["proxy"] }
