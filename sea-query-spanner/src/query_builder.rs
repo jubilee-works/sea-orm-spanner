@@ -74,11 +74,11 @@ impl OperLeftAssocDecider for SpannerQueryBuilder {
 }
 
 impl QueryBuilder for SpannerQueryBuilder {
-    fn placeholder(&self) -> (&str, bool) {
+    fn placeholder(&self) -> (&'static str, bool) {
         ("@p", true)
     }
 
-    fn prepare_query_statement(&self, query: &SubQueryStatement, sql: &mut dyn SqlWriter) {
+    fn prepare_query_statement(&self, query: &SubQueryStatement, sql: &mut impl SqlWriter) {
         match query {
             SubQueryStatement::SelectStatement(stmt) => self.prepare_select_statement(stmt, sql),
             SubQueryStatement::InsertStatement(stmt) => self.prepare_insert_statement(stmt, sql),
@@ -88,8 +88,8 @@ impl QueryBuilder for SpannerQueryBuilder {
         }
     }
 
-    fn prepare_value(&self, value: &Value, sql: &mut dyn SqlWriter) {
-        sql.push_param(value.clone(), self as _);
+    fn prepare_value(&self, value: Value, sql: &mut impl SqlWriter) {
+        sql.push_param(value, self as _);
     }
 }
 

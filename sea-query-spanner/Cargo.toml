@@ -18,7 +18,7 @@ with-json = ["sea-query/with-json", "serde_json"]
 with-rust_decimal = ["sea-query/with-rust_decimal", "rust_decimal"]
 
 [dependencies]
-sea-query = { version = "0.32", default-features = false, features = ["postgres-array"] }
+sea-query = { version = "1.0.0-rc", default-features = false, features = ["postgres-array"] }
 chrono = { version = "0.4", features = ["serde"], optional = true }
 uuid = { version = "1", features = ["v4", "serde"], optional = true }
 rust_decimal = { version = "1", features = ["serde"], optional = true }

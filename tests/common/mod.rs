@@ -224,7 +224,7 @@ async fn clear_tables(db: &DatabaseConnection) {
     for table in ALL_TABLES {
         let sql = format!("DELETE FROM {} WHERE true", table);
         let _ = db
-            .execute(Statement::from_string(sea_orm::DatabaseBackend::MySql, sql))
+            .execute_raw(Statement::from_string(sea_orm::DatabaseBackend::MySql, sql))
             .await;
     }
 }

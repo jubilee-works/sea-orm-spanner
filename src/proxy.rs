@@ -120,13 +120,13 @@ impl SpannerProxy {
             Value::Double(Some(v)) => stmt.add_param(param_name, v),
             Value::Double(None) => stmt.add_param(param_name, &Option::<f64>::None),
 
-            Value::String(Some(v)) => stmt.add_param(param_name, v.as_ref()),
+            Value::String(Some(v)) => stmt.add_param(param_name, v),
             Value::String(None) => stmt.add_param(param_name, &Option::<String>::None),
 
             Value::Char(Some(v)) => stmt.add_param(param_name, &v.to_string()),
             Value::Char(None) => stmt.add_param(param_name, &Option::<String>::None),
 
-            Value::Bytes(Some(v)) => stmt.add_param(param_name, v.as_ref()),
+            Value::Bytes(Some(v)) => stmt.add_param(param_name, v),
             Value::Bytes(None) => stmt.add_param(param_name, &Option::<Vec<u8>>::None),
 
             #[cfg(feature = "with-chrono")]
@@ -144,7 +144,7 @@ impl SpannerProxy {
             #[cfg(feature = "with-chrono")]
             Value::ChronoDateTime(Some(v)) => stmt.add_param(
                 param_name,
-                &crate::chrono_support::SpannerNaiveDateTime::new(**v),
+                &crate::chrono_support::SpannerNaiveDateTime::new(*v),
             ),
             #[cfg(feature = "with-chrono")]
             Value::ChronoDateTime(None) => stmt.add_param(
@@ -154,7 +154,7 @@ impl SpannerProxy {
             #[cfg(feature = "with-chrono")]
             Value::ChronoDateTimeUtc(Some(v)) => stmt.add_param(
                 param_name,
-                &crate::chrono_support::SpannerTimestamp::new(*v.as_ref()),
+                &crate::chrono_support::SpannerTimestamp::new(*v),
             ),
             #[cfg(feature = "with-chrono")]
             Value::ChronoDateTimeUtc(None) => stmt.add_param(
@@ -183,7 +183,7 @@ impl SpannerProxy {
             ),
 
             #[cfg(feature = "with-uuid")]
-            Value::Uuid(Some(v)) => stmt.add_param(param_name, v.as_ref()),
+            Value::Uuid(Some(v)) => stmt.add_param(param_name, v),
             #[cfg(feature = "with-uuid")]
             Value::Uuid(None) => stmt.add_param(param_name, &Option::<uuid::Uuid>::None),
 
@@ -300,7 +300,7 @@ impl SpannerProxy {
                 let arr: Vec<String> = values
                     .iter()
                     .filter_map(|v| match v {
-                        Value::String(Some(s)) => Some(s.as_ref().clone()),
+                        Value::String(Some(s)) => Some(s.clone()),
                         Value::Char(Some(c)) => Some(c.to_string()),
                         _ => None,
                     })
@@ -311,7 +311,7 @@ impl SpannerProxy {
                 let arr: Vec<Vec<u8>> = values
                     .iter()
                     .filter_map(|v| match v {
-                        Value::Bytes(Some(b)) => Some(b.as_ref().clone()),
+                        Value::Bytes(Some(b)) => Some(b.clone()),
                         _ => None,
                     })
                     .collect();
@@ -475,7 +475,7 @@ impl SpannerProxy {
                 }
             },
             Ok(TypeCode::String) => match row.column::<Option<String>>(idx) {
-                Ok(v) => return Value::String(v.map(Box::new)),
+                Ok(v) => return Value::String(v),
                 Err(e) => {
                     tracing::warn!(
                         "Failed to read STRING column {} at index {}: {:?}",
@@ -486,7 +486,7 @@ impl SpannerProxy {
                 }
             },
             Ok(TypeCode::Bytes) => match row.column::<Option<Vec<u8>>>(idx) {
-                Ok(v) => return Value::Bytes(v.map(Box::new)),
+                Ok(v) => return Value::Bytes(v),
                 Err(e) => {
                     tracing::warn!(
                         "Failed to read BYTES column {} at index {}: {:?}",
@@ -507,9 +507,7 @@ impl SpannerProxy {
                                     odt.nanosecond(),
                                 )
                                 .unwrap_or(chrono::DateTime::UNIX_EPOCH);
-                                return Value::ChronoDateTime(Some(Box::new(
-                                    chrono_dt.naive_utc(),
-                                )));
+                                return Value::ChronoDateTime(Some(chrono_dt.naive_utc()));
                             }
                             return Value::ChronoDateTime(None);
                         }
@@ -524,7 +522,7 @@ impl SpannerProxy {
                 }
                 #[cfg(not(feature = "with-chrono"))]
                 if let Ok(v) = row.column::<Option<String>>(idx) {
-                    return Value::String(v.map(Box::new));
+                    return Value::String(v);
                 }
             }
             Ok(TypeCode::Date) => {
@@ -536,13 +534,13 @@ impl SpannerProxy {
                             d.month() as u32,
                             d.day() as u32,
                         );
-                        return Value::ChronoDate(naive_date.map(Box::new));
+                        return Value::ChronoDate(naive_date);
                     }
                     return Value::ChronoDate(None);
                 }
                 #[cfg(not(feature = "with-chrono"))]
                 if let Ok(v) = row.column::<Option<String>>(idx) {
-                    return Value::String(v.map(Box::new));
+                    return Value::String(v);
                 }
             }
             Ok(TypeCode::Numeric) => {
@@ -553,12 +551,12 @@ impl SpannerProxy {
                     if let Ok(decimal) =
                         rust_decimal::Decimal::from_str_exact(&big_decimal.to_string())
                     {
-                        return Value::Decimal(Some(Box::new(decimal)));
+                        return Value::Decimal(Some(decimal));
                     }
                 }
                 #[cfg(not(feature = "with-rust_decimal"))]
                 if let Ok(v) = row.column::<Option<String>>(idx) {
-                    return Value::String(v.map(Box::new));
+                    return Value::String(v);
                 }
             }
             Ok(TypeCode::Json) => {
@@ -573,17 +571,17 @@ impl SpannerProxy {
                 }
                 #[cfg(not(feature = "with-json"))]
                 if let Ok(v) = row.column::<Option<String>>(idx) {
-                    return Value::String(v.map(Box::new));
+                    return Value::String(v);
                 }
             }
             Ok(TypeCode::Uuid) => {
                 #[cfg(feature = "with-uuid")]
                 if let Ok(v) = row.column::<Option<uuid::Uuid>>(idx) {
-                    return Value::Uuid(v.map(Box::new));
+                    return Value::Uuid(v);
                 }
                 #[cfg(not(feature = "with-uuid"))]
                 if let Ok(v) = row.column::<Option<String>>(idx) {
-                    return Value::String(v.map(Box::new));
+                    return Value::String(v);
                 }
             }
             Ok(TypeCode::Array) => {
@@ -610,7 +608,7 @@ impl SpannerProxy {
 
         if let Ok(v) = row.column::<Option<String>>(idx) {
             tracing::debug!("Fallback: read {} as STRING", column_name);
-            return Value::String(v.map(Box::new));
+            return Value::String(v);
         }
 
         if let Ok(v) = row.column::<Option<bool>>(idx) {
@@ -658,19 +656,15 @@ impl SpannerProxy {
             }
             Ok(TypeCode::String) => {
                 if let Ok(arr) = row.column::<Vec<String>>(idx) {
-                    let values: Vec<Value> = arr
-                        .into_iter()
-                        .map(|v| Value::String(Some(Box::new(v))))
-                        .collect();
+                    let values: Vec<Value> =
+                        arr.into_iter().map(|v| Value::String(Some(v))).collect();
                     return Value::Array(ArrayType::String, Some(Box::new(values)));
                 }
             }
             Ok(TypeCode::Bytes) => {
                 if let Ok(arr) = row.column::<Vec<Vec<u8>>>(idx) {
-                    let values: Vec<Value> = arr
-                        .into_iter()
-                        .map(|v| Value::Bytes(Some(Box::new(v))))
-                        .collect();
+                    let values: Vec<Value> =
+                        arr.into_iter().map(|v| Value::Bytes(Some(v))).collect();
                     return Value::Array(ArrayType::Bytes, Some(Box::new(values)));
                 }
             }
@@ -787,7 +781,7 @@ impl ProxyDatabaseTrait for SpannerProxy {
                 for idx in 0..100 {
                     let col_name = format!("col_{}", idx);
                     if let Ok(v) = row.column::<Option<String>>(idx) {
-                        values.insert(col_name, Value::String(v.map(Box::new)));
+                        values.insert(col_name, Value::String(v));
                     } else {
                         break;
                     }
