@@ -617,7 +617,6 @@ mod aggregate_tests {
 
     #[tokio::test]
     #[serial]
-    #[ignore = "SeaORM count() returns u64 but Spanner only has INT64 - needs BigInt to u64 conversion"]
     async fn test_count_without_group_by() {
         let db = setup_test_database().await;
         setup_users_with_posts(&db).await;

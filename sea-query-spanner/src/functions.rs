@@ -1,8 +1,8 @@
-use sea_query::Function;
+use sea_query::Func;
 
-pub fn translate_function(func: &Function) -> String {
+pub fn translate_function(func: &Func) -> String {
     match func {
-        Function::Custom(name) => name.to_string().to_uppercase(),
+        Func::Custom(name) => name.to_string().to_uppercase(),
         _ => {
             let name = format!("{:?}", func);
             translate_function_name(&name)
