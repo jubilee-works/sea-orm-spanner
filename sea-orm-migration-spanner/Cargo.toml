@@ -17,12 +17,19 @@ name = "sea_orm_migration_spanner"
 path = "src/lib.rs"
 
 [dependencies]
-sea-orm = { git = "https://github.com/SeaQL/sea-orm.git", branch = "master", features = ["runtime-tokio-native-tls", "macros"] }
-sea-orm-migration = { git = "https://github.com/SeaQL/sea-orm.git", branch = "master" }
+sea-orm = { git = "https://github.com/SeaQL/sea-orm.git", rev = "63e6e491eb95961818c84b1329fb1021797f0091", features = [
+    "runtime-tokio-native-tls",
+    "macros",
+] }
+sea-orm-migration = { git = "https://github.com/SeaQL/sea-orm.git", rev = "63e6e491eb95961818c84b1329fb1021797f0091" }
 sea-orm-spanner = { path = ".." }
 sea-query-spanner = { path = "../sea-query-spanner" }
-gcloud-spanner = { git = "https://github.com/devgony/google-cloud-rust.git", branch = "support-uuid", features = ["uuid"] }
-gcloud-googleapis = { git = "https://github.com/devgony/google-cloud-rust.git", branch = "support-uuid", features = ["spanner"] }
+gcloud-spanner = { git = "https://github.com/devgony/google-cloud-rust.git", branch = "support-uuid", features = [
+    "uuid",
+] }
+gcloud-googleapis = { git = "https://github.com/devgony/google-cloud-rust.git", branch = "support-uuid", features = [
+    "spanner",
+] }
 async-trait = "0.1"
 tokio = { version = "1", features = ["full"] }
 regex = "1"
@@ -36,7 +43,11 @@ default = []
 
 [dev-dependencies]
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
-gcloud-spanner = { git = "https://github.com/devgony/google-cloud-rust.git", branch = "support-uuid", features = ["uuid"] }
-gcloud-googleapis = { git = "https://github.com/devgony/google-cloud-rust.git", branch = "support-uuid", features = ["spanner"] }
+gcloud-spanner = { git = "https://github.com/devgony/google-cloud-rust.git", branch = "support-uuid", features = [
+    "uuid",
+] }
+gcloud-googleapis = { git = "https://github.com/devgony/google-cloud-rust.git", branch = "support-uuid", features = [
+    "spanner",
+] }
 async-trait = "0.1"
 serial_test = "3.3"
