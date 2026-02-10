@@ -3,7 +3,7 @@ use sea_query::{
         EscapeBuilder, OperLeftAssocDecider, PrecedenceDecider, QueryBuilder, QuotedBuilder,
         TableRefBuilder,
     },
-    BinOper, Oper, Quote, SimpleExpr, SqlWriter, SubQueryStatement, Value,
+    BinOper, Oper, Quote, SelectInto, SimpleExpr, SqlWriter, SubQueryStatement, Value,
 };
 
 pub struct SpannerQueryBuilder;
@@ -87,6 +87,8 @@ impl QueryBuilder for SpannerQueryBuilder {
             SubQueryStatement::WithStatement(stmt) => self.prepare_with_query(stmt, sql),
         }
     }
+
+    fn prepare_select_into(&self, _: &SelectInto, _: &mut impl SqlWriter) {}
 
     fn prepare_value(&self, value: Value, sql: &mut impl SqlWriter) {
         sql.push_param(value, self as _);
