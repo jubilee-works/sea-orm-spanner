@@ -16,6 +16,8 @@ path = "src/lib.rs"
 
 [dependencies]
 sea-orm-migration-spanner = { path = "../../sea-orm-migration-spanner" }
-sea-orm = { git = "https://github.com/SeaQL/sea-orm.git", rev = "559c92ea73a7adb84d9a6aa2dae912cdddfa5bff", features = ["runtime-tokio-native-tls"] }
+sea-orm = { git = "https://github.com/SeaQL/sea-orm.git", rev = "63e6e491eb95961818c84b1329fb1021797f0091", features = [
+    "runtime-tokio-native-tls",
+] }
 tokio = { version = "1", features = ["full"] }
 async-trait = "0.1"
