@@ -152,6 +152,11 @@ impl SpannerTableBuilder {
         self.col_raw(name, "NUMERIC", not_null)
     }
 
+    /// Add a UUID column
+    pub fn uuid<S: Into<String>>(self, name: S, not_null: bool) -> Self {
+        self.col_raw(name, "UUID", not_null)
+    }
+
     /// Add a column with DEFAULT expression
     pub fn col_with_default<S: Into<String>, T: Into<String>, D: Into<String>>(
         mut self,
