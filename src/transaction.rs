@@ -1,6 +1,5 @@
 use crate::error::SpannerDbErr;
 use crate::query_result::SpannerQueryResult;
-use gcloud_spanner::reader::AsyncIterator;
 use gcloud_spanner::statement::Statement as SpannerStatement;
 use gcloud_spanner::transaction_ro::ReadOnlyTransaction;
 use gcloud_spanner::transaction_rw::ReadWriteTransaction;
