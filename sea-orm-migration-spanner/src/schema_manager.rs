@@ -210,24 +210,21 @@ impl SchemaManager {
             )
             .await;
 
-        match result {
-            Ok(mut op) => {
-                op.wait(None)
-                    .await
-                    .map_err(|e| DbErr::Custom(format!("DDL operation failed: {}", e)))?;
-                Ok(())
-            }
-            Err(e) => {
-                let err_str = e.to_string();
-                if err_str.contains("AlreadyExists")
-                    || err_str.contains("already exists")
-                    || err_str.contains("Duplicate name")
-                {
-                    Ok(())
-                } else {
-                    Err(DbErr::Custom(format!("DDL execution failed: {}", err_str)))
-                }
-            }
+        let err_str = match result {
+            Ok(mut op) => match op.wait(None).await {
+                Ok(_) => return Ok(()),
+                Err(e) => e.to_string(),
+            },
+            Err(e) => e.to_string(),
+        };
+
+        if err_str.contains("AlreadyExists")
+            || err_str.contains("already exists")
+            || err_str.contains("Duplicate name")
+        {
+            Ok(())
+        } else {
+            Err(DbErr::Custom(format!("DDL execution failed: {}", err_str)))
         }
     }
 
