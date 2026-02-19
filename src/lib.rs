@@ -11,8 +11,8 @@ pub mod uuid_support;
 
 pub use array_support::*;
 pub use database::{
-    ensure_database, ensure_instance, CreateOptions, DatabaseDialect, DatabasePath, InstanceConfig,
-    SpannerDatabase,
+    ensure_database, ensure_instance, ensure_tls, CreateOptions, DatabaseDialect, DatabasePath,
+    InstanceConfig, SpannerDatabase,
 };
 pub use error::SpannerDbErr;
 pub use gcloud_spanner::client::ClientConfig;

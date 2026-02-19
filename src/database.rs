@@ -145,6 +145,14 @@ impl DatabasePath {
     }
 }
 
+/// Install the rustls crypto provider for GCP TLS connections.
+///
+/// This is called automatically when connecting to GCP (non-emulator).
+/// Safe to call multiple times — subsequent calls are no-ops.
+pub fn ensure_tls() {
+    let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
+}
+
 pub struct SpannerDatabase;
 
 impl SpannerDatabase {
@@ -162,6 +170,7 @@ impl SpannerDatabase {
         let config = if std::env::var("SPANNER_EMULATOR_HOST").is_ok() {
             ClientConfig::default()
         } else {
+            ensure_tls();
             ClientConfig::default().with_auth().await.map_err(|e| {
                 SpannerDbErr::Connection(format!("Failed to authenticate with GCP: {}", e))
             })?

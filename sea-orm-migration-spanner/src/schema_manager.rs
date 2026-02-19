@@ -187,6 +187,7 @@ impl SchemaManager {
         let admin_config = if std::env::var("SPANNER_EMULATOR_HOST").is_ok() {
             AdminClientConfig::default()
         } else {
+            sea_orm_spanner::ensure_tls();
             AdminClientConfig::default()
                 .with_auth()
                 .await

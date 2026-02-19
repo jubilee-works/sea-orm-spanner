@@ -70,6 +70,7 @@ rust_decimal = { version = "1", features = ["serde"], optional = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", optional = true }
 
+rustls = { version = "0.23", features = ["aws_lc_rs"] }
 thiserror = "2"
 tracing = "0.1"
 base64 = "0.13"

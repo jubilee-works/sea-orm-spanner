@@ -156,24 +156,9 @@ let db = SpannerDatabase::connect_or_create_with_emulator(
 ).await?;
 ```
 
-### TLS Setup for GCP
+### TLS
 
-When connecting to GCP (not the emulator), TLS is required. Add `rustls` to your `Cargo.toml` and install the crypto provider before connecting:
-
-```toml
-[dependencies]
-rustls = { version = "0.23", features = ["aws_lc_rs"] }
-```
-
-```rust
-fn main() {
-    rustls::crypto::aws_lc_rs::default_provider()
-        .install_default()
-        .expect("Failed to install rustls crypto provider");
-
-    // ... then connect as usual
-}
-```
+TLS is handled automatically. When connecting to GCP (non-emulator), `connect()` and `SchemaManager` install the `rustls` crypto provider internally. No manual setup needed.
 
 ## Migrations
 
