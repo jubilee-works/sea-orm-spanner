@@ -779,7 +779,7 @@ impl ProxyDatabaseTrait for SpannerProxy {
 
         let mut results = Vec::new();
         let mut column_names: Option<Vec<String>> = None;
-        let fields = iter.columns_metadata().clone();
+        let mut fields: Option<std::sync::Arc<Vec<Field>>> = None;
 
         while let Some(row) = iter
             .next()
@@ -788,13 +788,16 @@ impl ProxyDatabaseTrait for SpannerProxy {
         {
             if column_names.is_none() {
                 column_names = Some(Self::extract_column_names_from_statement(&statement));
+                fields = Some(iter.columns_metadata().clone());
             }
 
             let col_names = column_names.as_ref().unwrap();
+            let col_fields = fields.as_ref().unwrap();
             let mut values = BTreeMap::new();
 
             for (idx, col_name) in col_names.iter().enumerate() {
-                let value = Self::spanner_value_to_sea_value(&row, fields.as_ref(), idx, col_name);
+                let value =
+                    Self::spanner_value_to_sea_value(&row, col_fields.as_ref(), idx, col_name);
                 values.insert(col_name.clone(), value);
             }
 
