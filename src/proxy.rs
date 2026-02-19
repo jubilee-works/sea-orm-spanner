@@ -445,7 +445,12 @@ impl SpannerProxy {
             .get(idx)
             .and_then(|f| f.r#type.as_ref())
             .map(|t| t.code)
-            .unwrap_or(0);
+            .ok_or_else(|| {
+                DbErr::Type(format!(
+                    "Missing type metadata for column {} at index {}",
+                    column_name, idx
+                ))
+            })?;
 
         match TypeCode::try_from(type_code) {
             Ok(TypeCode::Bool) => {
@@ -656,27 +661,13 @@ impl SpannerProxy {
             Ok(TypeCode::Array) => {
                 return Self::read_array_value(row, fields, idx, column_name);
             }
-            _ => {}
+            _ => {
+                return Err(DbErr::Type(format!(
+                    "Unsupported type code {} for column {} at index {}",
+                    type_code, column_name, idx
+                )));
+            }
         }
-
-        if let Ok(v) = row.column::<Option<i64>>(idx) {
-            return Ok(Value::BigInt(v));
-        }
-        if let Ok(v) = row.column::<Option<f64>>(idx) {
-            return Ok(Value::Double(v));
-        }
-        if let Ok(v) = row.column::<Option<String>>(idx) {
-            return Ok(Value::String(v));
-        }
-        if let Ok(v) = row.column::<Option<bool>>(idx) {
-            return Ok(Value::Bool(v));
-        }
-
-        Err(DbErr::Type(format!(
-            "Failed to read column {} (type code {}) - all attempts failed",
-            column_name, type_code
-        ))
-        .into())
     }
 
     fn read_array_value(
