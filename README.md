@@ -91,6 +91,90 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
+## Connection
+
+### Auto-Detect (Recommended)
+
+`SpannerDatabase::connect()` automatically detects the environment:
+
+- **`SPANNER_EMULATOR_HOST` is set** → connects to the emulator without authentication
+- **`SPANNER_EMULATOR_HOST` is not set** → connects to GCP using [Application Default Credentials (ADC)](https://cloud.google.com/docs/authentication/application-default-credentials)
+
+```rust
+// Emulator: just set SPANNER_EMULATOR_HOST=localhost:9010
+// GCP: uses ADC automatically (no code change needed)
+let db = SpannerDatabase::connect(
+    "projects/my-project/instances/my-instance/databases/my-db"
+).await?;
+```
+
+ADC discovers credentials in the following order:
+
+1. `GOOGLE_APPLICATION_CREDENTIALS` env var (path to service account JSON file)
+2. `gcloud auth application-default login` (local development)
+3. GCE/GKE metadata server (when running on Google Cloud)
+
+### Custom Configuration
+
+Use `connect_with_config()` with a `ClientConfig` for full control over the connection:
+
+```rust
+use sea_orm_spanner::{SpannerDatabase, ClientConfig};
+
+// Example: explicit auth with custom endpoint
+let config = ClientConfig::default()
+    .with_auth()
+    .await
+    .expect("Failed to authenticate");
+
+let db = SpannerDatabase::connect_with_config(
+    "projects/my-project/instances/my-instance/databases/my-db",
+    config,
+).await?;
+```
+
+### Explicit Emulator Connection
+
+If you prefer not to rely on environment variables:
+
+```rust
+// Default emulator (localhost:9010)
+let db = SpannerDatabase::connect_with_emulator(
+    "projects/test/instances/test/databases/test"
+).await?;
+
+// Custom emulator host
+let db = SpannerDatabase::connect_with_emulator_host(
+    "projects/test/instances/test/databases/test",
+    "localhost:9020",
+).await?;
+
+// Auto-create instance and database on emulator
+let db = SpannerDatabase::connect_or_create_with_emulator(
+    "projects/test/instances/test/databases/test",
+    CreateOptions::new().with_instance_creation(),
+).await?;
+```
+
+### TLS Setup for GCP
+
+When connecting to GCP (not the emulator), TLS is required. Add `rustls` to your `Cargo.toml` and install the crypto provider before connecting:
+
+```toml
+[dependencies]
+rustls = { version = "0.23", features = ["aws_lc_rs"] }
+```
+
+```rust
+fn main() {
+    rustls::crypto::aws_lc_rs::default_provider()
+        .install_default()
+        .expect("Failed to install rustls crypto provider");
+
+    // ... then connect as usual
+}
+```
+
 ## Migrations
 
 ### Initialize Migration Directory
