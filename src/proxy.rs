@@ -440,7 +440,7 @@ impl SpannerProxy {
         fields: &[Field],
         idx: usize,
         column_name: &str,
-    ) -> Value {
+    ) -> Result<Value, DbErr> {
         let type_code = fields
             .get(idx)
             .and_then(|f| f.r#type.as_ref())
@@ -448,167 +448,209 @@ impl SpannerProxy {
             .unwrap_or(0);
 
         match TypeCode::try_from(type_code) {
-            Ok(TypeCode::Bool) => match row.column::<Option<bool>>(idx) {
-                Ok(v) => return Value::Bool(v),
-                Err(e) => {
-                    tracing::warn!(
-                        "Failed to read BOOL column {} at index {}: {:?}",
-                        column_name,
-                        idx,
-                        e
-                    );
-                }
-            },
-            Ok(TypeCode::Int64) => match row.column::<Option<i64>>(idx) {
-                Ok(v) => return Value::BigInt(v),
-                Err(e) => {
-                    tracing::warn!(
-                        "Failed to read INT64 column {} at index {}: {:?}",
-                        column_name,
-                        idx,
-                        e
-                    );
-                }
-            },
-            Ok(TypeCode::Float64 | TypeCode::Float32) => match row.column::<Option<f64>>(idx) {
-                Ok(v) => return Value::Double(v),
-                Err(e) => {
-                    tracing::warn!(
-                        "Failed to read FLOAT64 column {} at index {}: {:?}",
-                        column_name,
-                        idx,
-                        e
-                    );
-                }
-            },
-            Ok(TypeCode::String) => match row.column::<Option<String>>(idx) {
-                Ok(v) => return Value::String(v),
-                Err(e) => {
-                    tracing::warn!(
-                        "Failed to read STRING column {} at index {}: {:?}",
-                        column_name,
-                        idx,
-                        e
-                    );
-                }
-            },
-            Ok(TypeCode::Bytes) => match row.column::<Option<Vec<u8>>>(idx) {
-                Ok(v) => return Value::Bytes(v),
-                Err(e) => {
-                    tracing::warn!(
-                        "Failed to read BYTES column {} at index {}: {:?}",
-                        column_name,
-                        idx,
-                        e
-                    );
-                }
-            },
+            Ok(TypeCode::Bool) => {
+                let v = row.column::<Option<bool>>(idx).map_err(|e| {
+                    DbErr::Type(format!(
+                        "Failed to read BOOL column {} at index {}: {}",
+                        column_name, idx, e
+                    ))
+                })?;
+                return Ok(Value::Bool(v));
+            }
+            Ok(TypeCode::Int64) => {
+                let v = row.column::<Option<i64>>(idx).map_err(|e| {
+                    DbErr::Type(format!(
+                        "Failed to read INT64 column {} at index {}: {}",
+                        column_name, idx, e
+                    ))
+                })?;
+                return Ok(Value::BigInt(v));
+            }
+            Ok(TypeCode::Float64 | TypeCode::Float32) => {
+                let v = row.column::<Option<f64>>(idx).map_err(|e| {
+                    DbErr::Type(format!(
+                        "Failed to read FLOAT64 column {} at index {}: {}",
+                        column_name, idx, e
+                    ))
+                })?;
+                return Ok(Value::Double(v));
+            }
+            Ok(TypeCode::String) => {
+                let v = row.column::<Option<String>>(idx).map_err(|e| {
+                    DbErr::Type(format!(
+                        "Failed to read STRING column {} at index {}: {}",
+                        column_name, idx, e
+                    ))
+                })?;
+                return Ok(Value::String(v));
+            }
+            Ok(TypeCode::Bytes) => {
+                let v = row.column::<Option<Vec<u8>>>(idx).map_err(|e| {
+                    DbErr::Type(format!(
+                        "Failed to read BYTES column {} at index {}: {}",
+                        column_name, idx, e
+                    ))
+                })?;
+                return Ok(Value::Bytes(v));
+            }
             Ok(TypeCode::Timestamp) => {
                 #[cfg(feature = "with-chrono")]
                 {
-                    match row.column::<Option<time::OffsetDateTime>>(idx) {
-                        Ok(v) => {
-                            if let Some(odt) = v {
-                                let chrono_dt = chrono::DateTime::from_timestamp(
-                                    odt.unix_timestamp(),
-                                    odt.nanosecond(),
-                                )
-                                .unwrap_or(chrono::DateTime::UNIX_EPOCH);
-                                return Value::ChronoDateTime(Some(chrono_dt.naive_utc()));
-                            }
-                            return Value::ChronoDateTime(None);
-                        }
-                        Err(e) => {
-                            tracing::warn!(
-                                "Failed to read timestamp column {} as OffsetDateTime: {:?}",
-                                column_name,
-                                e
-                            );
-                        }
+                    let v = row
+                        .column::<Option<time::OffsetDateTime>>(idx)
+                        .map_err(|e| {
+                            DbErr::Type(format!(
+                                "Failed to read TIMESTAMP column {} at index {}: {}",
+                                column_name, idx, e
+                            ))
+                        })?;
+                    if let Some(odt) = v {
+                        let chrono_dt = chrono::DateTime::from_timestamp(
+                            odt.unix_timestamp(),
+                            odt.nanosecond(),
+                        )
+                        .unwrap_or(chrono::DateTime::UNIX_EPOCH);
+                        return Ok(Value::ChronoDateTime(Some(chrono_dt.naive_utc())));
                     }
+                    return Ok(Value::ChronoDateTime(None));
                 }
                 #[cfg(not(feature = "with-chrono"))]
-                if let Ok(v) = row.column::<Option<String>>(idx) {
-                    return Value::String(v);
+                {
+                    let v = row.column::<Option<String>>(idx).map_err(|e| {
+                        DbErr::Type(format!(
+                            "Failed to read TIMESTAMP column {} at index {}: {}",
+                            column_name, idx, e
+                        ))
+                    })?;
+                    return Ok(Value::String(v));
                 }
             }
             Ok(TypeCode::Date) => {
                 #[cfg(feature = "with-chrono")]
-                if let Ok(v) = row.column::<Option<time::Date>>(idx) {
+                {
+                    let v = row.column::<Option<time::Date>>(idx).map_err(|e| {
+                        DbErr::Type(format!(
+                            "Failed to read DATE column {} at index {}: {}",
+                            column_name, idx, e
+                        ))
+                    })?;
                     if let Some(d) = v {
                         let naive_date = chrono::NaiveDate::from_ymd_opt(
                             d.year(),
                             d.month() as u32,
                             d.day() as u32,
                         );
-                        return Value::ChronoDate(naive_date);
+                        return Ok(Value::ChronoDate(naive_date));
                     }
-                    return Value::ChronoDate(None);
+                    return Ok(Value::ChronoDate(None));
                 }
                 #[cfg(not(feature = "with-chrono"))]
-                if let Ok(v) = row.column::<Option<String>>(idx) {
-                    return Value::String(v);
+                {
+                    let v = row.column::<Option<String>>(idx).map_err(|e| {
+                        DbErr::Type(format!(
+                            "Failed to read DATE column {} at index {}: {}",
+                            column_name, idx, e
+                        ))
+                    })?;
+                    return Ok(Value::String(v));
                 }
             }
             Ok(TypeCode::Numeric) => {
                 #[cfg(feature = "with-rust_decimal")]
-                if let Ok(Some(big_decimal)) =
-                    row.column::<Option<gcloud_spanner::bigdecimal::BigDecimal>>(idx)
                 {
-                    if let Ok(decimal) =
-                        rust_decimal::Decimal::from_str_exact(&big_decimal.to_string())
-                    {
-                        return Value::Decimal(Some(decimal));
+                    let big_decimal = row
+                        .column::<Option<gcloud_spanner::bigdecimal::BigDecimal>>(idx)
+                        .map_err(|e| {
+                            DbErr::Type(format!(
+                                "Failed to read NUMERIC column {} at index {}: {}",
+                                column_name, idx, e
+                            ))
+                        })?;
+                    if let Some(bd) = big_decimal {
+                        let decimal = rust_decimal::Decimal::from_str_exact(&bd.to_string())
+                            .map_err(|e| {
+                                DbErr::Type(format!(
+                                    "Failed to convert NUMERIC column {} to Decimal: {}",
+                                    column_name, e
+                                ))
+                            })?;
+                        return Ok(Value::Decimal(Some(decimal)));
                     }
+                    return Ok(Value::Decimal(None));
                 }
                 #[cfg(not(feature = "with-rust_decimal"))]
-                if let Ok(v) = row.column::<Option<String>>(idx) {
-                    return Value::String(v);
+                {
+                    let v = row.column::<Option<String>>(idx).map_err(|e| {
+                        DbErr::Type(format!(
+                            "Failed to read NUMERIC column {} at index {}: {}",
+                            column_name, idx, e
+                        ))
+                    })?;
+                    return Ok(Value::String(v));
                 }
             }
             Ok(TypeCode::Json) => {
                 #[cfg(feature = "with-json")]
-                if let Ok(v) = row.column::<Option<String>>(idx) {
+                {
+                    let v = row.column::<Option<String>>(idx).map_err(|e| {
+                        DbErr::Type(format!(
+                            "Failed to read JSON column {} at index {}: {}",
+                            column_name, idx, e
+                        ))
+                    })?;
                     if let Some(s) = v {
-                        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&s) {
-                            return Value::Json(Some(Box::new(json)));
-                        }
+                        let json = serde_json::from_str::<serde_json::Value>(&s).map_err(|e| {
+                            DbErr::Type(format!(
+                                "Failed to parse JSON column {}: {}",
+                                column_name, e
+                            ))
+                        })?;
+                        return Ok(Value::Json(Some(Box::new(json))));
                     }
-                    return Value::Json(None);
+                    return Ok(Value::Json(None));
                 }
                 #[cfg(not(feature = "with-json"))]
-                if let Ok(v) = row.column::<Option<String>>(idx) {
-                    return Value::String(v);
+                {
+                    let v = row.column::<Option<String>>(idx).map_err(|e| {
+                        DbErr::Type(format!(
+                            "Failed to read JSON column {} at index {}: {}",
+                            column_name, idx, e
+                        ))
+                    })?;
+                    return Ok(Value::String(v));
                 }
             }
             Ok(TypeCode::Uuid) => {
                 #[cfg(feature = "with-uuid")]
-                match row.column::<Option<String>>(idx) {
-                    Ok(Some(s)) => match uuid::Uuid::parse_str(&s) {
-                        Ok(uuid) => return Value::Uuid(Some(uuid)),
-                        Err(e) => {
-                            tracing::error!(
-                                "UUID column {} at index {} contains invalid UUID value '{}': {}",
-                                column_name,
-                                idx,
-                                s,
-                                e
-                            );
+                {
+                    let v = row.column::<Option<String>>(idx).map_err(|e| {
+                        DbErr::Type(format!(
+                            "Failed to read UUID column {} at index {}: {}",
+                            column_name, idx, e
+                        ))
+                    })?;
+                    match v {
+                        Some(s) => {
+                            let uuid = uuid::Uuid::parse_str(&s).map_err(|e| {
+                                DbErr::Type(format!(
+                                    "UUID column {} at index {} contains invalid value '{}': {}",
+                                    column_name, idx, s, e
+                                ))
+                            })?;
+                            return Ok(Value::Uuid(Some(uuid)));
                         }
-                    },
-                    Ok(None) => return Value::Uuid(None),
-                    Err(e) => {
-                        tracing::warn!(
-                            "Failed to read UUID column {} at index {}: {:?}",
-                            column_name,
-                            idx,
-                            e
-                        );
+                        None => return Ok(Value::Uuid(None)),
                     }
                 }
                 #[cfg(not(feature = "with-uuid"))]
-                if let Ok(v) = row.column::<Option<String>>(idx) {
-                    return Value::String(v);
+                {
+                    let v = row.column::<Option<String>>(idx).map_err(|e| {
+                        DbErr::Type(format!(
+                            "Failed to read UUID column {} at index {}: {}",
+                            column_name, idx, e
+                        ))
+                    })?;
+                    return Ok(Value::String(v));
                 }
             }
             Ok(TypeCode::Array) => {
@@ -617,38 +659,24 @@ impl SpannerProxy {
             _ => {}
         }
 
-        tracing::debug!(
-            "Type code {} for column {} - attempting fallback type detection",
-            type_code,
-            column_name
-        );
-
         if let Ok(v) = row.column::<Option<i64>>(idx) {
-            tracing::debug!("Fallback: read {} as INT64", column_name);
-            return Value::BigInt(v);
+            return Ok(Value::BigInt(v));
         }
-
         if let Ok(v) = row.column::<Option<f64>>(idx) {
-            tracing::debug!("Fallback: read {} as FLOAT64", column_name);
-            return Value::Double(v);
+            return Ok(Value::Double(v));
         }
-
         if let Ok(v) = row.column::<Option<String>>(idx) {
-            tracing::debug!("Fallback: read {} as STRING", column_name);
-            return Value::String(v);
+            return Ok(Value::String(v));
         }
-
         if let Ok(v) = row.column::<Option<bool>>(idx) {
-            tracing::debug!("Fallback: read {} as BOOL", column_name);
-            return Value::Bool(v);
+            return Ok(Value::Bool(v));
         }
 
-        tracing::warn!(
-            "Unknown column type {} for {} - all fallback attempts failed",
-            type_code,
-            column_name
-        );
-        Value::String(None)
+        Err(DbErr::Type(format!(
+            "Failed to read column {} (type code {}) - all attempts failed",
+            column_name, type_code
+        ))
+        .into())
     }
 
     fn read_array_value(
@@ -656,7 +684,7 @@ impl SpannerProxy {
         fields: &[Field],
         idx: usize,
         column_name: &str,
-    ) -> Value {
+    ) -> Result<Value, DbErr> {
         let element_type_code = fields
             .get(idx)
             .and_then(|f| f.r#type.as_ref())
@@ -664,51 +692,75 @@ impl SpannerProxy {
             .map(|et| et.code)
             .unwrap_or(0);
 
+        let err = |e: gcloud_spanner::row::Error| -> DbErr {
+            DbErr::Type(format!(
+                "Failed to read ARRAY column {} at index {}: {}",
+                column_name, idx, e
+            ))
+            .into()
+        };
+
         match TypeCode::try_from(element_type_code) {
             Ok(TypeCode::Bool) => {
-                if let Ok(arr) = row.column::<Vec<bool>>(idx) {
-                    let values: Vec<Value> =
-                        arr.into_iter().map(|v| Value::Bool(Some(v))).collect();
-                    return Value::Array(ArrayType::Bool, Some(Box::new(values)));
+                let arr = row.column::<Option<Vec<bool>>>(idx).map_err(err)?;
+                match arr {
+                    Some(v) => {
+                        let values: Vec<Value> =
+                            v.into_iter().map(|v| Value::Bool(Some(v))).collect();
+                        Ok(Value::Array(ArrayType::Bool, Some(Box::new(values))))
+                    }
+                    None => Ok(Value::Array(ArrayType::Bool, None)),
                 }
             }
             Ok(TypeCode::Int64) => {
-                if let Ok(arr) = row.column::<Vec<i64>>(idx) {
-                    let values: Vec<Value> =
-                        arr.into_iter().map(|v| Value::BigInt(Some(v))).collect();
-                    return Value::Array(ArrayType::BigInt, Some(Box::new(values)));
+                let arr = row.column::<Option<Vec<i64>>>(idx).map_err(err)?;
+                match arr {
+                    Some(v) => {
+                        let values: Vec<Value> =
+                            v.into_iter().map(|v| Value::BigInt(Some(v))).collect();
+                        Ok(Value::Array(ArrayType::BigInt, Some(Box::new(values))))
+                    }
+                    None => Ok(Value::Array(ArrayType::BigInt, None)),
                 }
             }
             Ok(TypeCode::Float64 | TypeCode::Float32) => {
-                if let Ok(arr) = row.column::<Vec<f64>>(idx) {
-                    let values: Vec<Value> =
-                        arr.into_iter().map(|v| Value::Double(Some(v))).collect();
-                    return Value::Array(ArrayType::Double, Some(Box::new(values)));
+                let arr = row.column::<Option<Vec<f64>>>(idx).map_err(err)?;
+                match arr {
+                    Some(v) => {
+                        let values: Vec<Value> =
+                            v.into_iter().map(|v| Value::Double(Some(v))).collect();
+                        Ok(Value::Array(ArrayType::Double, Some(Box::new(values))))
+                    }
+                    None => Ok(Value::Array(ArrayType::Double, None)),
                 }
             }
             Ok(TypeCode::String) => {
-                if let Ok(arr) = row.column::<Vec<String>>(idx) {
-                    let values: Vec<Value> =
-                        arr.into_iter().map(|v| Value::String(Some(v))).collect();
-                    return Value::Array(ArrayType::String, Some(Box::new(values)));
+                let arr = row.column::<Option<Vec<String>>>(idx).map_err(err)?;
+                match arr {
+                    Some(v) => {
+                        let values: Vec<Value> =
+                            v.into_iter().map(|v| Value::String(Some(v))).collect();
+                        Ok(Value::Array(ArrayType::String, Some(Box::new(values))))
+                    }
+                    None => Ok(Value::Array(ArrayType::String, None)),
                 }
             }
             Ok(TypeCode::Bytes) => {
-                if let Ok(arr) = row.column::<Vec<Vec<u8>>>(idx) {
-                    let values: Vec<Value> =
-                        arr.into_iter().map(|v| Value::Bytes(Some(v))).collect();
-                    return Value::Array(ArrayType::Bytes, Some(Box::new(values)));
+                let arr = row.column::<Option<Vec<Vec<u8>>>>(idx).map_err(err)?;
+                match arr {
+                    Some(v) => {
+                        let values: Vec<Value> =
+                            v.into_iter().map(|v| Value::Bytes(Some(v))).collect();
+                        Ok(Value::Array(ArrayType::Bytes, Some(Box::new(values))))
+                    }
+                    None => Ok(Value::Array(ArrayType::Bytes, None)),
                 }
             }
-            _ => {}
+            _ => Err(DbErr::Type(format!(
+                "Unsupported array element type {} for column {}",
+                element_type_code, column_name
+            ))),
         }
-
-        tracing::warn!(
-            "Unknown array element type {} for {}",
-            element_type_code,
-            column_name
-        );
-        Value::Array(ArrayType::String, None)
     }
 
     fn extract_column_names_from_statement(statement: &Statement) -> Vec<String> {
@@ -809,7 +861,7 @@ impl ProxyDatabaseTrait for SpannerProxy {
 
             for (idx, col_name) in col_names.iter().enumerate() {
                 let value =
-                    Self::spanner_value_to_sea_value(&row, col_fields.as_ref(), idx, col_name);
+                    Self::spanner_value_to_sea_value(&row, col_fields.as_ref(), idx, col_name)?;
                 values.insert(col_name.clone(), value);
             }
 
