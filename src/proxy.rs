@@ -1,6 +1,7 @@
 use crate::array_support::*;
 use crate::error::SpannerDbErr;
 use async_trait::async_trait;
+use gcloud_googleapis::spanner::v1::struct_type::Field;
 use gcloud_googleapis::spanner::v1::TypeCode;
 use gcloud_spanner::client::Client;
 
@@ -183,9 +184,14 @@ impl SpannerProxy {
             ),
 
             #[cfg(feature = "with-uuid")]
-            Value::Uuid(Some(v)) => stmt.add_param(param_name, v),
+            Value::Uuid(Some(v)) => {
+                stmt.add_param(param_name, &crate::uuid_support::SpannerUuid::new(*v))
+            }
             #[cfg(feature = "with-uuid")]
-            Value::Uuid(None) => stmt.add_param(param_name, &Option::<uuid::Uuid>::None),
+            Value::Uuid(None) => stmt.add_param(
+                param_name,
+                &crate::uuid_support::SpannerOptionalUuid::none(),
+            ),
 
             #[cfg(feature = "with-json")]
             Value::Json(Some(v)) => stmt.add_param(
@@ -431,11 +437,12 @@ impl SpannerProxy {
 
     fn spanner_value_to_sea_value(
         row: &gcloud_spanner::row::Row,
+        fields: &[Field],
         idx: usize,
         column_name: &str,
     ) -> Value {
-        let type_code = row
-            .field(idx)
+        let type_code = fields
+            .get(idx)
             .and_then(|f| f.r#type.as_ref())
             .map(|t| t.code)
             .unwrap_or(0);
@@ -576,8 +583,16 @@ impl SpannerProxy {
             }
             Ok(TypeCode::Uuid) => {
                 #[cfg(feature = "with-uuid")]
-                if let Ok(v) = row.column::<Option<uuid::Uuid>>(idx) {
-                    return Value::Uuid(v);
+                if let Ok(v) = row.column::<Option<String>>(idx) {
+                    match v {
+                        Some(s) => {
+                            if let Ok(uuid) = uuid::Uuid::parse_str(&s) {
+                                return Value::Uuid(Some(uuid));
+                            }
+                            return Value::String(Some(s));
+                        }
+                        None => return Value::Uuid(None),
+                    }
                 }
                 #[cfg(not(feature = "with-uuid"))]
                 if let Ok(v) = row.column::<Option<String>>(idx) {
@@ -585,7 +600,7 @@ impl SpannerProxy {
                 }
             }
             Ok(TypeCode::Array) => {
-                return Self::read_array_value(row, idx, column_name);
+                return Self::read_array_value(row, fields, idx, column_name);
             }
             _ => {}
         }
@@ -624,9 +639,14 @@ impl SpannerProxy {
         Value::String(None)
     }
 
-    fn read_array_value(row: &gcloud_spanner::row::Row, idx: usize, column_name: &str) -> Value {
-        let element_type_code = row
-            .field(idx)
+    fn read_array_value(
+        row: &gcloud_spanner::row::Row,
+        fields: &[Field],
+        idx: usize,
+        column_name: &str,
+    ) -> Value {
+        let element_type_code = fields
+            .get(idx)
             .and_then(|f| f.r#type.as_ref())
             .and_then(|t| t.array_element_type.as_ref())
             .map(|et| et.code)
@@ -759,6 +779,7 @@ impl ProxyDatabaseTrait for SpannerProxy {
 
         let mut results = Vec::new();
         let mut column_names: Option<Vec<String>> = None;
+        let fields = iter.columns_metadata().clone();
 
         while let Some(row) = iter
             .next()
@@ -773,7 +794,7 @@ impl ProxyDatabaseTrait for SpannerProxy {
             let mut values = BTreeMap::new();
 
             for (idx, col_name) in col_names.iter().enumerate() {
-                let value = Self::spanner_value_to_sea_value(&row, idx, col_name);
+                let value = Self::spanner_value_to_sea_value(&row, fields.as_ref(), idx, col_name);
                 values.insert(col_name.clone(), value);
             }
 

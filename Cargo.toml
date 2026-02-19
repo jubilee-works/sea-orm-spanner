@@ -51,11 +51,9 @@ sea-orm = { git = "https://github.com/SeaQL/sea-orm.git", tag = "2.0.0-rc.32", d
 sea-query = { version = "1.0.0-rc.31", default-features = false }
 sea-query-spanner = { path = "sea-query-spanner" }
 
-gcloud-spanner = { git = "https://github.com/devgony/google-cloud-rust.git", branch = "support-uuid", features = [
-    "uuid",
-] }
-gcloud-gax = { git = "https://github.com/devgony/google-cloud-rust.git", branch = "support-uuid", default-features = false }
-gcloud-googleapis = { git = "https://github.com/devgony/google-cloud-rust.git", branch = "support-uuid", features = [
+gcloud-spanner = "1.7.0"
+gcloud-gax = { version = "1.3.2", default-features = false }
+gcloud-googleapis = { version = "1.3.0", features = [
     "spanner",
 ] }
 prost-types = "0.14"
@@ -63,7 +61,7 @@ prost-types = "0.14"
 async-trait = "0.1"
 tokio = { version = "1", features = ["full"] }
 futures = "0.3"
-tonic = "0.12"
+tonic = "0.14"
 
 chrono = { version = "0.4", features = ["serde"], optional = true }
 time = { version = "0.3", optional = true }
@@ -81,10 +79,8 @@ tokio-test = "0.4"
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1", features = ["v4", "serde"] }
-gcloud-spanner = { git = "https://github.com/devgony/google-cloud-rust.git", branch = "support-uuid", features = [
-    "uuid",
-] }
-gcloud-googleapis = { git = "https://github.com/devgony/google-cloud-rust.git", branch = "support-uuid", features = [
+gcloud-spanner = "1.7.0"
+gcloud-googleapis = { version = "1.3.0", features = [
     "spanner",
 ] }
 sea-orm = { git = "https://github.com/SeaQL/sea-orm.git", tag = "2.0.0-rc.32", features = [
