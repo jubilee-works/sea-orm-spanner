@@ -1,5 +1,6 @@
 use crate::error::SpannerDbErr;
 use crate::proxy::SpannerProxy;
+use gcloud_gax::conn::Environment;
 use gcloud_googleapis::spanner::admin::database::v1::{
     CreateDatabaseRequest, DatabaseDialect as GrpcDatabaseDialect,
 };
@@ -183,8 +184,7 @@ impl SpannerDatabase {
 
     /// Connect to Spanner using the local emulator
     pub async fn connect_with_emulator(database: &str) -> Result<DatabaseConnection, DbErr> {
-        std::env::set_var("SPANNER_EMULATOR_HOST", "localhost:9010");
-        Self::connect(database).await
+        Self::connect_with_emulator_host(database, "localhost:9010").await
     }
 
     /// Connect to Spanner using a custom emulator host
@@ -192,8 +192,11 @@ impl SpannerDatabase {
         database: &str,
         emulator_host: &str,
     ) -> Result<DatabaseConnection, DbErr> {
-        std::env::set_var("SPANNER_EMULATOR_HOST", emulator_host);
-        Self::connect(database).await
+        let config = ClientConfig {
+            environment: Environment::Emulator(emulator_host.to_string()),
+            ..Default::default()
+        };
+        Self::connect_with_config(database, config).await
     }
 
     /// Connect to Spanner emulator, creating instance and/or database if they don't exist
@@ -233,38 +236,33 @@ impl SpannerDatabase {
         emulator_host: &str,
         options: CreateOptions,
     ) -> Result<DatabaseConnection, DbErr> {
-        std::env::set_var("SPANNER_EMULATOR_HOST", emulator_host);
-
         let path = DatabasePath::parse(database)?;
 
         if options.create_instance_if_not_exists {
-            ensure_instance(&path, &options.instance_config).await?;
+            ensure_instance(&path, &options.instance_config, emulator_host).await?;
         }
 
         if options.create_database_if_not_exists {
-            ensure_database(&path, options.database_dialect).await?;
+            ensure_database(&path, options.database_dialect, emulator_host).await?;
         }
 
-        Self::connect(database).await
+        let config = ClientConfig {
+            environment: Environment::Emulator(emulator_host.to_string()),
+            ..Default::default()
+        };
+        Self::connect_with_config(database, config).await
     }
 }
 
-fn require_emulator() -> Result<(), DbErr> {
-    if std::env::var("SPANNER_EMULATOR_HOST").is_err() {
-        return Err(DbErr::Custom(
-            "SPANNER_EMULATOR_HOST not set. Auto-provisioning only works with emulator to prevent accidental cloud resource creation.".to_string()
-        ));
-    }
-    Ok(())
-}
-
-/// Ensure the Spanner instance exists, creating it if necessary.
-///
-/// **Emulator only**: Requires `SPANNER_EMULATOR_HOST` environment variable.
-pub async fn ensure_instance(path: &DatabasePath, config: &InstanceConfig) -> Result<bool, DbErr> {
-    require_emulator()?;
-
-    let admin_client = AdminClient::new(AdminClientConfig::default())
+pub async fn ensure_instance(
+    path: &DatabasePath,
+    config: &InstanceConfig,
+    emulator_host: &str,
+) -> Result<bool, DbErr> {
+    let admin_config = AdminClientConfig {
+        environment: Environment::Emulator(emulator_host.to_string()),
+    };
+    let admin_client = AdminClient::new(admin_config)
         .await
         .map_err(|e| SpannerDbErr::Connection(format!("Failed to create admin client: {}", e)))?;
 
@@ -319,13 +317,15 @@ pub async fn ensure_instance(path: &DatabasePath, config: &InstanceConfig) -> Re
     }
 }
 
-/// Ensure the Spanner database exists, creating it if necessary.
-///
-/// **Emulator only**: Requires `SPANNER_EMULATOR_HOST` environment variable.
-pub async fn ensure_database(path: &DatabasePath, dialect: DatabaseDialect) -> Result<bool, DbErr> {
-    require_emulator()?;
-
-    let admin_client = AdminClient::new(AdminClientConfig::default())
+pub async fn ensure_database(
+    path: &DatabasePath,
+    dialect: DatabaseDialect,
+    emulator_host: &str,
+) -> Result<bool, DbErr> {
+    let admin_config = AdminClientConfig {
+        environment: Environment::Emulator(emulator_host.to_string()),
+    };
+    let admin_client = AdminClient::new(admin_config)
         .await
         .map_err(|e| SpannerDbErr::Connection(format!("Failed to create admin client: {}", e)))?;
 
