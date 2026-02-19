@@ -583,21 +583,27 @@ impl SpannerProxy {
             }
             Ok(TypeCode::Uuid) => {
                 #[cfg(feature = "with-uuid")]
-                if let Ok(v) = row.column::<Option<String>>(idx) {
-                    match v {
-                        Some(s) => {
-                            if let Ok(uuid) = uuid::Uuid::parse_str(&s) {
-                                return Value::Uuid(Some(uuid));
-                            }
-                            tracing::warn!(
-                                "UUID column {} at index {} contains unparseable value: {:?}",
+                match row.column::<Option<String>>(idx) {
+                    Ok(Some(s)) => match uuid::Uuid::parse_str(&s) {
+                        Ok(uuid) => return Value::Uuid(Some(uuid)),
+                        Err(e) => {
+                            tracing::error!(
+                                "UUID column {} at index {} contains invalid UUID value '{}': {}",
                                 column_name,
                                 idx,
-                                s
+                                s,
+                                e
                             );
-                            return Value::String(Some(s));
                         }
-                        None => return Value::Uuid(None),
+                    },
+                    Ok(None) => return Value::Uuid(None),
+                    Err(e) => {
+                        tracing::warn!(
+                            "Failed to read UUID column {} at index {}: {:?}",
+                            column_name,
+                            idx,
+                            e
+                        );
                     }
                 }
                 #[cfg(not(feature = "with-uuid"))]
