@@ -255,7 +255,7 @@ impl MigrationTrait for Migration {
                     )
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk-user_settings-user_id")
+                            .name("fk_user_settings_user_id")
                             .from(UserSettings::Table, UserSettings::UserId)
                             .to(Users::Table, Users::Id),
                     )
@@ -286,7 +286,7 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(ChatSessions::LastMessageAt).timestamp())
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk-chat_sessions-user_id")
+                            .name("fk_chat_sessions_user_id")
                             .from(ChatSessions::Table, ChatSessions::UserId)
                             .to(Users::Table, Users::Id),
                     )
@@ -330,7 +330,7 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(ChatMessages::CreatedAt).timestamp())
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk-chat_messages-session_id")
+                            .name("fk_chat_messages_session_id")
                             .from(ChatMessages::Table, ChatMessages::SessionId)
                             .to(ChatSessions::Table, ChatSessions::Id),
                     )
@@ -391,19 +391,19 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(GeneratedSchedules::UpdatedAt).timestamp())
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk-generated_schedules-user_id")
+                            .name("fk_generated_schedules_user_id")
                             .from(GeneratedSchedules::Table, GeneratedSchedules::UserId)
                             .to(Users::Table, Users::Id),
                     )
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk-generated_schedules-session_id")
+                            .name("fk_generated_schedules_session_id")
                             .from(GeneratedSchedules::Table, GeneratedSchedules::SessionId)
                             .to(ChatSessions::Table, ChatSessions::Id),
                     )
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk-generated_schedules-message_id")
+                            .name("fk_generated_schedules_message_id")
                             .from(GeneratedSchedules::Table, GeneratedSchedules::MessageId)
                             .to(ChatMessages::Table, ChatMessages::Id),
                     )
@@ -461,7 +461,7 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(ScheduleEvents::SortOrder).integer())
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk-schedule_events-schedule_id")
+                            .name("fk_schedule_events_schedule_id")
                             .from(ScheduleEvents::Table, ScheduleEvents::ScheduleId)
                             .to(GeneratedSchedules::Table, GeneratedSchedules::Id),
                     )
@@ -499,7 +499,7 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(UserPreferences::UpdatedAt).timestamp())
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk-user_preferences-user_id")
+                            .name("fk_user_preferences_user_id")
                             .from(UserPreferences::Table, UserPreferences::UserId)
                             .to(Users::Table, Users::Id),
                     )
@@ -526,7 +526,7 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(AgentMemories::LearnedAt).timestamp())
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk-agent_memories-user_id")
+                            .name("fk_agent_memories_user_id")
                             .from(AgentMemories::Table, AgentMemories::UserId)
                             .to(Users::Table, Users::Id),
                     )
@@ -570,7 +570,7 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Feedbacks::CreatedAt).timestamp())
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk-feedbacks-user_id")
+                            .name("fk_feedbacks_user_id")
                             .from(Feedbacks::Table, Feedbacks::UserId)
                             .to(Users::Table, Users::Id),
                     )
@@ -633,13 +633,13 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(QuizResponses::AnsweredAt).timestamp())
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk-quiz_responses-user_id")
+                            .name("fk_quiz_responses_user_id")
                             .from(QuizResponses::Table, QuizResponses::UserId)
                             .to(Users::Table, Users::Id),
                     )
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk-quiz_responses-quiz_id")
+                            .name("fk_quiz_responses_quiz_id")
                             .from(QuizResponses::Table, QuizResponses::QuizId)
                             .to(DailyQuizzes::Table, DailyQuizzes::Id),
                     )
@@ -674,7 +674,7 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(UserPoints::UsedPoints).integer().default(0))
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk-user_points-user_id")
+                            .name("fk_user_points_user_id")
                             .from(UserPoints::Table, UserPoints::UserId)
                             .to(Users::Table, Users::Id),
                     )
@@ -710,13 +710,13 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(LlmRequests::CompletedAt).timestamp())
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk-llm_requests-user_id")
+                            .name("fk_llm_requests_user_id")
                             .from(LlmRequests::Table, LlmRequests::UserId)
                             .to(Users::Table, Users::Id),
                     )
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk-llm_requests-session_id")
+                            .name("fk_llm_requests_session_id")
                             .from(LlmRequests::Table, LlmRequests::SessionId)
                             .to(ChatSessions::Table, ChatSessions::Id),
                     )
