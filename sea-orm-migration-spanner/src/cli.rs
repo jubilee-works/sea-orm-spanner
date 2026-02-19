@@ -91,20 +91,18 @@ pub fn run_migrate_init(migration_dir: &str) -> Result<(), Box<dyn std::error::E
 
     println!("Initializing migration directory...");
 
-    let cargo_toml = r#"[package]
+    let cargo_toml = format!(
+        r#"[package]
 name = "migration"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-sea-orm-migration-spanner = { path = "path/to/sea-orm-migration-spanner" }
-sea-orm = { version = "1.1", features = ["runtime-tokio-native-tls"] }
-tokio = { version = "1", features = ["full"] }
-async-trait = "0.1"
-clap = { version = "4", features = ["derive", "env"] }
-dotenvy = "0.15"
-"#
-    .to_string();
+sea-orm-migration-spanner = {{ version = "{}" }}
+tokio = {{ version = "1", features = ["full"] }}
+"#,
+        env!("CARGO_PKG_VERSION")
+    );
 
     let lib_rs = r#"mod m20220101_000001_create_table;
 
@@ -202,9 +200,8 @@ cargo run -- fresh
     println!("Done!");
     println!();
     println!("Next steps:");
-    println!("  1. Update Cargo.toml with correct path to sea-orm-migration-spanner");
-    println!("  2. Edit src/m20220101_000001_create_table.rs with your schema");
-    println!("  3. Run: cargo run -- -d 'projects/.../databases/...' up");
+    println!("  1. Edit src/m20220101_000001_create_table.rs with your schema");
+    println!("  2. Run: cargo run -- -u 'projects/.../databases/...' up");
 
     Ok(())
 }

@@ -27,8 +27,8 @@ export SPANNER_EMULATOR_HOST=localhost:9010
 
 ```toml
 [dependencies]
-sea-orm-spanner = { path = "path/to/sea-orm-spanner" }
-sea-orm = { version = "1.1", features = ["runtime-tokio-native-tls", "macros"] }
+sea-orm-spanner = "0.1"
+sea-orm = { git = "https://github.com/SeaQL/sea-orm.git", tag = "2.0.0-rc.32", features = ["runtime-tokio-native-tls", "macros"] }
 tokio = { version = "1", features = ["full"] }
 chrono = "0.4"
 uuid = { version = "1", features = ["v4"] }
