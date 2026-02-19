@@ -148,8 +148,23 @@ pub struct SpannerDatabase;
 
 impl SpannerDatabase {
     /// Connect to an existing Spanner database
+    ///
+    /// Automatically detects the environment:
+    /// - If `SPANNER_EMULATOR_HOST` is set, connects without authentication
+    /// - Otherwise, uses Application Default Credentials (ADC) for authentication
+    ///
+    /// ADC discovers credentials from (in order):
+    /// 1. `GOOGLE_APPLICATION_CREDENTIALS` environment variable (service account JSON)
+    /// 2. `gcloud auth application-default login` (local development)
+    /// 3. GCE/GKE metadata server (when running on Google Cloud)
     pub async fn connect(database: &str) -> Result<DatabaseConnection, DbErr> {
-        let config = ClientConfig::default();
+        let config = if std::env::var("SPANNER_EMULATOR_HOST").is_ok() {
+            ClientConfig::default()
+        } else {
+            ClientConfig::default().with_auth().await.map_err(|e| {
+                SpannerDbErr::Connection(format!("Failed to authenticate with GCP: {}", e))
+            })?
+        };
         Self::connect_with_config(database, config).await
     }
 

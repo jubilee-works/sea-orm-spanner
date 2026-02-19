@@ -81,9 +81,7 @@ fn database_path() -> String {
 }
 
 async fn setup_test_database() {
-    use gcloud_googleapis::spanner::admin::database::v1::{
-        CreateDatabaseRequest, DatabaseDialect,
-    };
+    use gcloud_googleapis::spanner::admin::database::v1::{CreateDatabaseRequest, DatabaseDialect};
     use gcloud_googleapis::spanner::admin::instance::v1::{CreateInstanceRequest, Instance};
     use gcloud_spanner::admin::client::Client as AdminClient;
     use gcloud_spanner::admin::AdminClientConfig;
@@ -95,7 +93,9 @@ async fn setup_test_database() {
     let project_path = format!("projects/{}", PROJECT);
     let instance_path = format!("{}/instances/{}", project_path, INSTANCE);
 
-    let admin_client = AdminClient::new(AdminClientConfig::default()).await.unwrap();
+    let admin_client = AdminClient::new(AdminClientConfig::default())
+        .await
+        .unwrap();
     let _ = admin_client
         .instance()
         .create_instance(

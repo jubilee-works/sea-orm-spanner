@@ -184,7 +184,15 @@ impl SchemaManager {
 
     /// Execute multiple DDL statements
     pub async fn execute_ddl(&self, statements: Vec<String>) -> Result<(), DbErr> {
-        let admin_client = AdminClient::new(AdminClientConfig::default())
+        let admin_config = if std::env::var("SPANNER_EMULATOR_HOST").is_ok() {
+            AdminClientConfig::default()
+        } else {
+            AdminClientConfig::default()
+                .with_auth()
+                .await
+                .map_err(|e| DbErr::Custom(format!("Failed to authenticate with GCP: {}", e)))?
+        };
+        let admin_client = AdminClient::new(admin_config)
             .await
             .map_err(|e| DbErr::Custom(format!("Failed to create admin client: {}", e)))?;
 

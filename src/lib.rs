@@ -15,6 +15,7 @@ pub use database::{
     SpannerDatabase,
 };
 pub use error::SpannerDbErr;
+pub use gcloud_spanner::client::ClientConfig;
 #[cfg(feature = "with-json")]
 pub use json_support::{SpannerJson, SpannerOptionalJson};
 #[cfg(feature = "with-uuid")]

@@ -91,21 +91,20 @@ pub fn run_migrate_init(migration_dir: &str) -> Result<(), Box<dyn std::error::E
 
     println!("Initializing migration directory...");
 
-    let cargo_toml = format!(
-        r#"[package]
+    let cargo_toml = r#"[package]
 name = "migration"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-sea-orm-migration-spanner = {{ path = "path/to/sea-orm-migration-spanner" }}
-sea-orm = {{ version = "1.1", features = ["runtime-tokio-native-tls"] }}
-tokio = {{ version = "1", features = ["full"] }}
+sea-orm-migration-spanner = { path = "path/to/sea-orm-migration-spanner" }
+sea-orm = { version = "1.1", features = ["runtime-tokio-native-tls"] }
+tokio = { version = "1", features = ["full"] }
 async-trait = "0.1"
-clap = {{ version = "4", features = ["derive", "env"] }}
+clap = { version = "4", features = ["derive", "env"] }
 dotenvy = "0.15"
 "#
-    );
+    .to_string();
 
     let lib_rs = r#"mod m20220101_000001_create_table;
 
@@ -201,7 +200,7 @@ cargo run -- fresh
     write_file(&migration_dir, "README.md", readme)?;
 
     println!("Done!");
-    println!("");
+    println!();
     println!("Next steps:");
     println!("  1. Update Cargo.toml with correct path to sea-orm-migration-spanner");
     println!("  2. Edit src/m20220101_000001_create_table.rs with your schema");
@@ -224,24 +223,23 @@ pub fn run_migrate_generate(
     let migration_name = migration_name.trim().replace(' ', "_");
     let file_name = format!("m{}_{}", timestamp, migration_name);
 
-    let content = format!(
-        r#"use sea_orm_migration_spanner::prelude::*;
+    let content = r#"use sea_orm_migration_spanner::prelude::*;
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
 
 #[async_trait]
-impl MigrationTrait for Migration {{
-    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {{
+impl MigrationTrait for Migration {
+    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         todo!("Implement migration up")
-    }}
+    }
 
-    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {{
+    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         todo!("Implement migration down")
-    }}
-}}
+    }
+}
 "#
-    );
+    .to_string();
 
     let file_path = Path::new(migration_dir).join(format!("{}.rs", file_name));
     println!("Creating migration file: {}", file_path.display());
@@ -249,7 +247,7 @@ impl MigrationTrait for Migration {{
     let mut file = fs::File::create(&file_path)?;
     file.write_all(content.as_bytes())?;
 
-    println!("");
+    println!();
     println!("Don't forget to add the migration to lib.rs:");
     println!("  mod {};", file_name);
     println!("  // and add to migrations() vec:");
