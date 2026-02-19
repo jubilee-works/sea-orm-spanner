@@ -460,7 +460,7 @@ impl SpannerProxy {
                         column_name, idx, e
                     ))
                 })?;
-                return Ok(Value::Bool(v));
+                Ok(Value::Bool(v))
             }
             Ok(TypeCode::Int64) => {
                 let v = row.column::<Option<i64>>(idx).map_err(|e| {
@@ -469,7 +469,7 @@ impl SpannerProxy {
                         column_name, idx, e
                     ))
                 })?;
-                return Ok(Value::BigInt(v));
+                Ok(Value::BigInt(v))
             }
             Ok(TypeCode::Float64 | TypeCode::Float32) => {
                 let v = row.column::<Option<f64>>(idx).map_err(|e| {
@@ -478,7 +478,7 @@ impl SpannerProxy {
                         column_name, idx, e
                     ))
                 })?;
-                return Ok(Value::Double(v));
+                Ok(Value::Double(v))
             }
             Ok(TypeCode::String) => {
                 let v = row.column::<Option<String>>(idx).map_err(|e| {
@@ -487,7 +487,7 @@ impl SpannerProxy {
                         column_name, idx, e
                     ))
                 })?;
-                return Ok(Value::String(v));
+                Ok(Value::String(v))
             }
             Ok(TypeCode::Bytes) => {
                 let v = row.column::<Option<Vec<u8>>>(idx).map_err(|e| {
@@ -496,7 +496,7 @@ impl SpannerProxy {
                         column_name, idx, e
                     ))
                 })?;
-                return Ok(Value::Bytes(v));
+                Ok(Value::Bytes(v))
             }
             Ok(TypeCode::Timestamp) => {
                 #[cfg(feature = "with-chrono")]
@@ -509,15 +509,17 @@ impl SpannerProxy {
                                 column_name, idx, e
                             ))
                         })?;
-                    if let Some(odt) = v {
-                        let chrono_dt = chrono::DateTime::from_timestamp(
-                            odt.unix_timestamp(),
-                            odt.nanosecond(),
-                        )
-                        .unwrap_or(chrono::DateTime::UNIX_EPOCH);
-                        return Ok(Value::ChronoDateTime(Some(chrono_dt.naive_utc())));
+                    match v {
+                        Some(odt) => {
+                            let chrono_dt = chrono::DateTime::from_timestamp(
+                                odt.unix_timestamp(),
+                                odt.nanosecond(),
+                            )
+                            .unwrap_or(chrono::DateTime::UNIX_EPOCH);
+                            Ok(Value::ChronoDateTime(Some(chrono_dt.naive_utc())))
+                        }
+                        None => Ok(Value::ChronoDateTime(None)),
                     }
-                    return Ok(Value::ChronoDateTime(None));
                 }
                 #[cfg(not(feature = "with-chrono"))]
                 {
@@ -527,7 +529,7 @@ impl SpannerProxy {
                             column_name, idx, e
                         ))
                     })?;
-                    return Ok(Value::String(v));
+                    Ok(Value::String(v))
                 }
             }
             Ok(TypeCode::Date) => {
@@ -539,15 +541,17 @@ impl SpannerProxy {
                             column_name, idx, e
                         ))
                     })?;
-                    if let Some(d) = v {
-                        let naive_date = chrono::NaiveDate::from_ymd_opt(
-                            d.year(),
-                            d.month() as u32,
-                            d.day() as u32,
-                        );
-                        return Ok(Value::ChronoDate(naive_date));
+                    match v {
+                        Some(d) => {
+                            let naive_date = chrono::NaiveDate::from_ymd_opt(
+                                d.year(),
+                                d.month() as u32,
+                                d.day() as u32,
+                            );
+                            Ok(Value::ChronoDate(naive_date))
+                        }
+                        None => Ok(Value::ChronoDate(None)),
                     }
-                    return Ok(Value::ChronoDate(None));
                 }
                 #[cfg(not(feature = "with-chrono"))]
                 {
@@ -557,7 +561,7 @@ impl SpannerProxy {
                             column_name, idx, e
                         ))
                     })?;
-                    return Ok(Value::String(v));
+                    Ok(Value::String(v))
                 }
             }
             Ok(TypeCode::Numeric) => {
@@ -571,17 +575,19 @@ impl SpannerProxy {
                                 column_name, idx, e
                             ))
                         })?;
-                    if let Some(bd) = big_decimal {
-                        let decimal = rust_decimal::Decimal::from_str_exact(&bd.to_string())
-                            .map_err(|e| {
-                                DbErr::Type(format!(
-                                    "Failed to convert NUMERIC column {} to Decimal: {}",
-                                    column_name, e
-                                ))
-                            })?;
-                        return Ok(Value::Decimal(Some(decimal)));
+                    match big_decimal {
+                        Some(bd) => {
+                            let decimal = rust_decimal::Decimal::from_str_exact(&bd.to_string())
+                                .map_err(|e| {
+                                    DbErr::Type(format!(
+                                        "Failed to convert NUMERIC column {} to Decimal: {}",
+                                        column_name, e
+                                    ))
+                                })?;
+                            Ok(Value::Decimal(Some(decimal)))
+                        }
+                        None => Ok(Value::Decimal(None)),
                     }
-                    return Ok(Value::Decimal(None));
                 }
                 #[cfg(not(feature = "with-rust_decimal"))]
                 {
@@ -591,7 +597,7 @@ impl SpannerProxy {
                             column_name, idx, e
                         ))
                     })?;
-                    return Ok(Value::String(v));
+                    Ok(Value::String(v))
                 }
             }
             Ok(TypeCode::Json) => {
@@ -603,16 +609,19 @@ impl SpannerProxy {
                             column_name, idx, e
                         ))
                     })?;
-                    if let Some(s) = v {
-                        let json = serde_json::from_str::<serde_json::Value>(&s).map_err(|e| {
-                            DbErr::Type(format!(
-                                "Failed to parse JSON column {}: {}",
-                                column_name, e
-                            ))
-                        })?;
-                        return Ok(Value::Json(Some(Box::new(json))));
+                    match v {
+                        Some(s) => {
+                            let json =
+                                serde_json::from_str::<serde_json::Value>(&s).map_err(|e| {
+                                    DbErr::Type(format!(
+                                        "Failed to parse JSON column {}: {}",
+                                        column_name, e
+                                    ))
+                                })?;
+                            Ok(Value::Json(Some(Box::new(json))))
+                        }
+                        None => Ok(Value::Json(None)),
                     }
-                    return Ok(Value::Json(None));
                 }
                 #[cfg(not(feature = "with-json"))]
                 {
@@ -622,7 +631,7 @@ impl SpannerProxy {
                             column_name, idx, e
                         ))
                     })?;
-                    return Ok(Value::String(v));
+                    Ok(Value::String(v))
                 }
             }
             Ok(TypeCode::Uuid) => {
@@ -642,9 +651,9 @@ impl SpannerProxy {
                                     column_name, idx, s, e
                                 ))
                             })?;
-                            return Ok(Value::Uuid(Some(uuid)));
+                            Ok(Value::Uuid(Some(uuid)))
                         }
-                        None => return Ok(Value::Uuid(None)),
+                        None => Ok(Value::Uuid(None)),
                     }
                 }
                 #[cfg(not(feature = "with-uuid"))]
@@ -655,18 +664,14 @@ impl SpannerProxy {
                             column_name, idx, e
                         ))
                     })?;
-                    return Ok(Value::String(v));
+                    Ok(Value::String(v))
                 }
             }
-            Ok(TypeCode::Array) => {
-                return Self::read_array_value(row, fields, idx, column_name);
-            }
-            _ => {
-                return Err(DbErr::Type(format!(
-                    "Unsupported type code {} for column {} at index {}",
-                    type_code, column_name, idx
-                )));
-            }
+            Ok(TypeCode::Array) => Self::read_array_value(row, fields, idx, column_name),
+            _ => Err(DbErr::Type(format!(
+                "Unsupported type code {} for column {} at index {}",
+                type_code, column_name, idx
+            ))),
         }
     }
 
@@ -688,7 +693,6 @@ impl SpannerProxy {
                 "Failed to read ARRAY column {} at index {}: {}",
                 column_name, idx, e
             ))
-            .into()
         };
 
         match TypeCode::try_from(element_type_code) {

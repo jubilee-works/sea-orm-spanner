@@ -1,4 +1,4 @@
 - Don't switch branch without asking
 - Commit on each changes
 - Use the newest version crate possible
-- Run `cargo fmt` and `cargo test` right before push
+- Run `cargo fmt`, `cargo clippy --all-features -- -D warnings` and `cargo test` right before push
