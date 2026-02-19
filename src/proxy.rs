@@ -589,6 +589,12 @@ impl SpannerProxy {
                             if let Ok(uuid) = uuid::Uuid::parse_str(&s) {
                                 return Value::Uuid(Some(uuid));
                             }
+                            tracing::warn!(
+                                "UUID column {} at index {} contains unparseable value: {:?}",
+                                column_name,
+                                idx,
+                                s
+                            );
                             return Value::String(Some(s));
                         }
                         None => return Value::Uuid(None),
