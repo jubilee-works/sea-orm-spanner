@@ -134,8 +134,6 @@ pub trait MigratorTrait: Send {
     }
 
     async fn up(database_path: &str, steps: Option<u32>) -> Result<(), DbErr> {
-        Self::install(database_path).await?;
-
         let migrations = Self::get_migrations_with_status(database_path).await?;
         let pending: Vec<_> = migrations
             .into_iter()
@@ -185,8 +183,6 @@ pub trait MigratorTrait: Send {
     }
 
     async fn down(database_path: &str, steps: Option<u32>) -> Result<(), DbErr> {
-        Self::install(database_path).await?;
-
         let migrations = Self::get_migrations_with_status(database_path).await?;
         let mut applied: Vec<_> = migrations
             .into_iter()

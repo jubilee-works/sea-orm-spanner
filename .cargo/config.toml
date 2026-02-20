@@ -1,2 +1,2 @@
-[env]
-SPANNER_EMULATOR_HOST = "localhost:9010"
+[net]
+git-fetch-with-cli = true
