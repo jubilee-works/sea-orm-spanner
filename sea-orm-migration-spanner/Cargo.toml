@@ -26,8 +26,8 @@ sea-orm-spanner = { path = ".." }
 sea-query-spanner = { path = "../sea-query-spanner" }
 gcloud-spanner = "1.7.0"
 gcloud-googleapis = { version = "1.3.0", features = ["spanner"] }
-google-cloud-gax = { package = "gcloud-gax", version = "1.3.2" }
-google-cloud-longrunning = { package = "gcloud-longrunning", version = "1.3.1" }
+gcloud-gax = "1.3.2"
+gcloud-longrunning = "1.3.1"
 async-trait = "0.1"
 tokio = { version = "1", features = ["full"] }
 rustls = { version = "0.23", features = ["aws_lc_rs"] }

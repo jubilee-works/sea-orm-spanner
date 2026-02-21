@@ -1,9 +1,9 @@
+use gcloud_gax::conn::{ConnectionManager, ConnectionOptions};
 use gcloud_googleapis::spanner::admin::database::v1::UpdateDatabaseDdlRequest;
+use gcloud_longrunning::autogen::operations_client::OperationsClient;
 use gcloud_spanner::admin::database::database_admin_client::DatabaseAdminClient;
 use gcloud_spanner::admin::AdminClientConfig;
 use gcloud_spanner::apiv1::conn_pool::{AUDIENCE, SPANNER};
-use google_cloud_gax::conn::{ConnectionManager, ConnectionOptions};
-use google_cloud_longrunning::autogen::operations_client::OperationsClient;
 use regex::Regex;
 use sea_orm::sea_query::{
     backend::MysqlQueryBuilder, IndexCreateStatement, IndexDropStatement, TableAlterStatement,
