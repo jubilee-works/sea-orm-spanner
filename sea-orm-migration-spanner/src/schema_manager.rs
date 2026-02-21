@@ -1,6 +1,9 @@
+use gcloud_gax::conn::{ConnectionManager, ConnectionOptions};
 use gcloud_googleapis::spanner::admin::database::v1::UpdateDatabaseDdlRequest;
-use gcloud_spanner::admin::client::Client as AdminClient;
+use gcloud_longrunning::autogen::operations_client::OperationsClient;
+use gcloud_spanner::admin::database::database_admin_client::DatabaseAdminClient;
 use gcloud_spanner::admin::AdminClientConfig;
+use gcloud_spanner::apiv1::conn_pool::{AUDIENCE, SPANNER};
 use regex::Regex;
 use sea_orm::sea_query::{
     backend::MysqlQueryBuilder, IndexCreateStatement, IndexDropStatement, TableAlterStatement,
@@ -8,6 +11,7 @@ use sea_orm::sea_query::{
 };
 use sea_orm::DbErr;
 use sea_query_spanner::{SpannerAlterTable, SpannerIndexBuilder, SpannerTableBuilder};
+use std::time::Duration;
 
 /// Convert MySQL DDL to Spanner DDL
 ///
@@ -193,12 +197,28 @@ impl SchemaManager {
                 .await
                 .map_err(|e| DbErr::Custom(format!("Failed to authenticate with GCP: {}", e)))?
         };
-        let admin_client = AdminClient::new(admin_config)
-            .await
-            .map_err(|e| DbErr::Custom(format!("Failed to create admin client: {}", e)))?;
 
-        let result = admin_client
-            .database()
+        // Build the channel directly with a 600s (10 min) timeout instead of
+        // the 30s hardcoded in AdminClient::new().
+        let conn_options = ConnectionOptions {
+            timeout: Some(Duration::from_secs(600)),
+            connect_timeout: Some(Duration::from_secs(30)),
+        };
+        let conn_pool = ConnectionManager::new(
+            1,
+            SPANNER,
+            AUDIENCE,
+            &admin_config.environment,
+            &conn_options,
+        )
+        .await
+        .map_err(|e| DbErr::Custom(format!("Failed to create admin connection: {}", e)))?;
+        let lro_client = OperationsClient::new(conn_pool.conn())
+            .await
+            .map_err(|e| DbErr::Custom(format!("Failed to create LRO client: {}", e)))?;
+        let database_admin = DatabaseAdminClient::new(conn_pool.conn(), lro_client);
+
+        let result = database_admin
             .update_database_ddl(
                 UpdateDatabaseDdlRequest {
                     database: self.database_path.clone(),
