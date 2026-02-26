@@ -1,4 +1,5 @@
 pub mod array_support;
+mod bind;
 #[cfg(feature = "with-chrono")]
 pub mod chrono_support;
 mod database;
