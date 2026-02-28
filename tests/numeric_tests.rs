@@ -1,12 +1,14 @@
 mod common;
 mod entity;
 
-use common::setup_test_database;
-use entity::numeric_types;
-use rust_decimal::Decimal;
-use rust_decimal_macros::dec;
-use sea_orm::{ActiveModelTrait, EntityTrait, Set};
-use serial_test::serial;
+use {
+    common::setup_test_database,
+    entity::numeric_types,
+    rust_decimal::Decimal,
+    rust_decimal_macros::dec,
+    sea_orm::{ActiveModelTrait, EntityTrait, Set},
+    serial_test::serial,
+};
 
 mod numeric_type_tests {
     use super::*;

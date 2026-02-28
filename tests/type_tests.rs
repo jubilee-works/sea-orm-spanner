@@ -1,12 +1,14 @@
 mod common;
 mod entity;
 
-use chrono::{Datelike, NaiveDate, NaiveDateTime, Utc};
-use common::setup_test_database;
-use entity::all_types;
-use sea_orm::{ActiveModelTrait, EntityTrait, Set};
-use serde_json::json;
-use serial_test::serial;
+use {
+    chrono::{Datelike, NaiveDate, NaiveDateTime, Utc},
+    common::setup_test_database,
+    entity::all_types,
+    sea_orm::{ActiveModelTrait, EntityTrait, Set},
+    serde_json::json,
+    serial_test::serial,
+};
 
 fn create_test_model(id: &str) -> all_types::ActiveModel {
     all_types::ActiveModel {
@@ -477,8 +479,10 @@ mod bytes_type_tests {
 }
 
 mod timestamp_type_tests {
-    use super::*;
-    use chrono::{TimeZone, Utc};
+    use {
+        super::*,
+        chrono::{TimeZone, Utc},
+    };
 
     #[tokio::test]
     #[serial]
