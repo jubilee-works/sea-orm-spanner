@@ -43,7 +43,6 @@ enum Commands {
 }
 
 pub async fn run_cli<M: MigratorTrait>(_migrator: M) {
-    dotenvy::dotenv().ok();
     let cli = Cli::parse();
 
     let result: Result<(), Box<dyn std::error::Error>> = match cli.command {
