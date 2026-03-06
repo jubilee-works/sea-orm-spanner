@@ -233,10 +233,31 @@ manager.create_table_raw(
 
 ### Run Migrations
 
-```bash
-# Set database path
-export DATABASE_PATH="projects/my-project/instances/my-instance/databases/my-db"
+The CLI auto-loads `.env` by default. Use `--env-file` to load a different file:
 
+```bash
+# Default: loads .env
+cargo run -p migration -- up
+
+# Load a specific env file
+cargo run -p migration -- --env-file .env.stg up
+
+# Or via ENV_FILE environment variable
+ENV_FILE=.env.stg cargo run -p migration -- up
+```
+
+Example `.env` files:
+
+```bash
+# .env (local development with emulator)
+SPANNER_EMULATOR_HOST=localhost:9010
+DATABASE_URL=projects/local-project/instances/test-instance/databases/test-db
+
+# .env.stg (staging — real GCP, no emulator)
+DATABASE_URL=projects/my-project/instances/stg-instance/databases/stg-db
+```
+
+```bash
 # Check status
 cargo run -p migration -- status
 
@@ -254,11 +275,6 @@ cargo run -p migration -- reset
 
 # Reset and reapply all
 cargo run -p migration -- fresh
-```
-
-Or pass database path directly:
-```bash
-cargo run -p migration -- -d "projects/.../databases/..." up
 ```
 
 ## Testing
