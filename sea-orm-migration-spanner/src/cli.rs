@@ -16,6 +16,14 @@ struct Cli {
     )]
     database_url: Option<String>,
 
+    #[arg(
+        long = "env-file",
+        env = "ENV_FILE",
+        default_value = ".env",
+        help = "Path to env file to load (default: .env)"
+    )]
+    env_file: String,
+
     #[command(subcommand)]
     command: Commands,
 }
@@ -43,14 +51,16 @@ enum Commands {
 }
 
 pub async fn run_cli<M: MigratorTrait>(_migrator: M) {
-    // Load .env but prevent it from polluting SPANNER_EMULATOR_HOST.
-    // That variable controls auth strategy (emulator vs real GCP) and must
-    // only be set intentionally by the user's shell, not by a leftover .env.
-    let had_emulator_host = std::env::var("SPANNER_EMULATOR_HOST").ok();
-    dotenvy::dotenv().ok();
-    if had_emulator_host.is_none() {
-        std::env::remove_var("SPANNER_EMULATOR_HOST");
-    }
+    // Parse --env-file before clap reads env vars, so the loaded file
+    // can provide DATABASE_URL and SPANNER_EMULATOR_HOST.
+    let env_file = std::env::args()
+        .collect::<Vec<_>>()
+        .windows(2)
+        .find(|w| w[0] == "--env-file")
+        .map(|w| w[1].clone())
+        .or_else(|| std::env::var("ENV_FILE").ok())
+        .unwrap_or_else(|| ".env".to_string());
+    dotenvy::from_filename(&env_file).ok();
 
     let cli = Cli::parse();
 

@@ -233,27 +233,29 @@ manager.create_table_raw(
 
 ### Run Migrations
 
-Set the database URL via `.env` file, environment variable, or CLI flag:
+The CLI auto-loads `.env` by default. Use `--env-file` to load a different file:
 
 ```bash
-# Option 1: .env file (auto-loaded)
-echo 'DATABASE_URL=projects/my-project/instances/my-instance/databases/my-db' > .env
-
-# Option 2: Environment variable
-export DATABASE_URL="projects/my-project/instances/my-instance/databases/my-db"
-
-# Option 3: CLI flag (-u / --database-url)
-cargo run -p migration -- -u "projects/my-project/instances/my-instance/databases/my-db" up
-```
-
-When using the emulator, set `SPANNER_EMULATOR_HOST` in your **shell**, not in `.env`:
-
-```bash
-export SPANNER_EMULATOR_HOST=localhost:9010
+# Default: loads .env
 cargo run -p migration -- up
+
+# Load a specific env file
+cargo run -p migration -- --env-file .env.stg up
+
+# Or via ENV_FILE environment variable
+ENV_FILE=.env.stg cargo run -p migration -- up
 ```
 
-> **Note:** The CLI auto-loads `.env` for `DATABASE_URL`, but ignores `SPANNER_EMULATOR_HOST` from `.env` to prevent accidentally connecting to the emulator instead of real GCP. Always set `SPANNER_EMULATOR_HOST` via `export` in your shell.
+Example `.env` files:
+
+```bash
+# .env (local development with emulator)
+SPANNER_EMULATOR_HOST=localhost:9010
+DATABASE_URL=projects/local-project/instances/test-instance/databases/test-db
+
+# .env.stg (staging — real GCP, no emulator)
+DATABASE_URL=projects/my-project/instances/stg-instance/databases/stg-db
+```
 
 ```bash
 # Check status
