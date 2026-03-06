@@ -736,7 +736,7 @@ mod complex_query_tests {
             .await
             .unwrap();
 
-        assert!(products.len() >= 1);
+        assert!(!products.is_empty());
     }
 
     #[tokio::test]
