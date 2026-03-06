@@ -233,10 +233,26 @@ manager.create_table_raw(
 
 ### Run Migrations
 
-```bash
-# Set database path
-export DATABASE_PATH="projects/my-project/instances/my-instance/databases/my-db"
+Set the database URL via environment variable or CLI flag:
 
+```bash
+# Option 1: Environment variable
+export DATABASE_URL="projects/my-project/instances/my-instance/databases/my-db"
+
+# Option 2: CLI flag (-u / --database-url)
+cargo run -p migration -- -u "projects/my-project/instances/my-instance/databases/my-db" up
+```
+
+When using the emulator, set `SPANNER_EMULATOR_HOST` explicitly:
+
+```bash
+export SPANNER_EMULATOR_HOST=localhost:9010
+export DATABASE_URL="projects/local-project/instances/test-instance/databases/test-db"
+```
+
+> **Note:** The CLI does not auto-load `.env` files. Set environment variables in your shell directly or use a tool like `direnv`.
+
+```bash
 # Check status
 cargo run -p migration -- status
 
@@ -254,11 +270,6 @@ cargo run -p migration -- reset
 
 # Reset and reapply all
 cargo run -p migration -- fresh
-```
-
-Or pass database path directly:
-```bash
-cargo run -p migration -- -d "projects/.../databases/..." up
 ```
 
 ## Testing
