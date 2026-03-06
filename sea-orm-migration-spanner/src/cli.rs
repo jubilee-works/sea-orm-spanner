@@ -43,6 +43,15 @@ enum Commands {
 }
 
 pub async fn run_cli<M: MigratorTrait>(_migrator: M) {
+    // Load .env but prevent it from polluting SPANNER_EMULATOR_HOST.
+    // That variable controls auth strategy (emulator vs real GCP) and must
+    // only be set intentionally by the user's shell, not by a leftover .env.
+    let had_emulator_host = std::env::var("SPANNER_EMULATOR_HOST").ok();
+    dotenvy::dotenv().ok();
+    if had_emulator_host.is_none() {
+        std::env::remove_var("SPANNER_EMULATOR_HOST");
+    }
+
     let cli = Cli::parse();
 
     let result: Result<(), Box<dyn std::error::Error>> = match cli.command {
