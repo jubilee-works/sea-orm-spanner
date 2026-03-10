@@ -77,44 +77,29 @@ pub(crate) fn bind_value(
         #[cfg(feature = "with-chrono")]
         Value::ChronoTime(None) => stmt.add_param(param_name, &Option::<String>::None),
         #[cfg(feature = "with-chrono")]
-        Value::ChronoDateTime(Some(v)) => stmt.add_param(
-            param_name,
-            &crate::chrono_support::SpannerNaiveDateTime(**v),
-        ),
+        Value::ChronoDateTime(Some(v)) => stmt.add_param(param_name, &v.and_utc()),
         #[cfg(feature = "with-chrono")]
-        Value::ChronoDateTime(None) => stmt.add_param(
-            param_name,
-            &crate::chrono_support::SpannerOptionalNaiveDateTime::none(),
-        ),
-        #[cfg(feature = "with-chrono")]
-        Value::ChronoDateTimeUtc(Some(v)) => {
-            stmt.add_param(param_name, &crate::chrono_support::SpannerTimestamp(**v))
+        Value::ChronoDateTime(None) => {
+            stmt.add_param(param_name, &Option::<chrono::DateTime<chrono::Utc>>::None)
         }
         #[cfg(feature = "with-chrono")]
-        Value::ChronoDateTimeUtc(None) => stmt.add_param(
-            param_name,
-            &crate::chrono_support::SpannerOptionalTimestamp::none(),
-        ),
+        Value::ChronoDateTimeUtc(Some(v)) => stmt.add_param(param_name, v.as_ref()),
         #[cfg(feature = "with-chrono")]
-        Value::ChronoDateTimeLocal(Some(v)) => stmt.add_param(
-            param_name,
-            &crate::chrono_support::SpannerTimestamp::new(v.to_utc()),
-        ),
+        Value::ChronoDateTimeUtc(None) => {
+            stmt.add_param(param_name, &Option::<chrono::DateTime<chrono::Utc>>::None)
+        }
         #[cfg(feature = "with-chrono")]
-        Value::ChronoDateTimeLocal(None) => stmt.add_param(
-            param_name,
-            &crate::chrono_support::SpannerOptionalTimestamp::none(),
-        ),
+        Value::ChronoDateTimeLocal(Some(v)) => stmt.add_param(param_name, &v.to_utc()),
         #[cfg(feature = "with-chrono")]
-        Value::ChronoDateTimeWithTimeZone(Some(v)) => stmt.add_param(
-            param_name,
-            &crate::chrono_support::SpannerTimestamp::new(v.to_utc()),
-        ),
+        Value::ChronoDateTimeLocal(None) => {
+            stmt.add_param(param_name, &Option::<chrono::DateTime<chrono::Utc>>::None)
+        }
         #[cfg(feature = "with-chrono")]
-        Value::ChronoDateTimeWithTimeZone(None) => stmt.add_param(
-            param_name,
-            &crate::chrono_support::SpannerOptionalTimestamp::none(),
-        ),
+        Value::ChronoDateTimeWithTimeZone(Some(v)) => stmt.add_param(param_name, &v.to_utc()),
+        #[cfg(feature = "with-chrono")]
+        Value::ChronoDateTimeWithTimeZone(None) => {
+            stmt.add_param(param_name, &Option::<chrono::DateTime<chrono::Utc>>::None)
+        }
 
         #[cfg(feature = "with-uuid")]
         Value::Uuid(Some(v)) => stmt.add_param(param_name, &v.to_string()),
