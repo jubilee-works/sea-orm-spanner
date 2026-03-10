@@ -77,20 +77,26 @@ pub(crate) fn bind_value(
         #[cfg(feature = "with-chrono")]
         Value::ChronoTime(None) => stmt.add_param(param_name, &Option::<String>::None),
         #[cfg(feature = "with-chrono")]
-        Value::ChronoDateTime(Some(v)) => stmt.add_param(
-            param_name,
-            &crate::chrono_support::SpannerNaiveDateTime::new(*v.clone()),
-        ),
+        Value::ChronoDateTime(Some(v)) => {
+            let dt: &chrono::NaiveDateTime = v.as_ref();
+            stmt.add_param(
+                param_name,
+                &crate::chrono_support::SpannerNaiveDateTime::new(*dt),
+            )
+        }
         #[cfg(feature = "with-chrono")]
         Value::ChronoDateTime(None) => stmt.add_param(
             param_name,
             &crate::chrono_support::SpannerOptionalNaiveDateTime::none(),
         ),
         #[cfg(feature = "with-chrono")]
-        Value::ChronoDateTimeUtc(Some(v)) => stmt.add_param(
-            param_name,
-            &crate::chrono_support::SpannerTimestamp::new(*v.clone()),
-        ),
+        Value::ChronoDateTimeUtc(Some(v)) => {
+            let dt: &chrono::DateTime<chrono::Utc> = v.as_ref();
+            stmt.add_param(
+                param_name,
+                &crate::chrono_support::SpannerTimestamp::new(*dt),
+            )
+        }
         #[cfg(feature = "with-chrono")]
         Value::ChronoDateTimeUtc(None) => stmt.add_param(
             param_name,
