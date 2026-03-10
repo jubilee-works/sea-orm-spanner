@@ -59,7 +59,10 @@ pub(crate) fn bind_value(
         Value::Float(None) => stmt.add_param(param_name, &Option::<f64>::None),
         Value::Double(Some(v)) => stmt.add_param(param_name, v),
         Value::Double(None) => stmt.add_param(param_name, &Option::<f64>::None),
-        Value::String(Some(v)) => stmt.add_param(param_name, v.as_ref() as &str),
+        Value::String(Some(v)) => {
+            let s: &str = v.as_ref();
+            stmt.add_param(param_name, &s)
+        }
         Value::String(None) => stmt.add_param(param_name, &Option::<String>::None),
         Value::Char(Some(v)) => stmt.add_param(param_name, &v.to_string()),
         Value::Char(None) => stmt.add_param(param_name, &Option::<String>::None),
