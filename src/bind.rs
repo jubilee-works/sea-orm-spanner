@@ -66,7 +66,10 @@ pub(crate) fn bind_value(
         Value::String(None) => stmt.add_param(param_name, &Option::<String>::None),
         Value::Char(Some(v)) => stmt.add_param(param_name, &v.to_string()),
         Value::Char(None) => stmt.add_param(param_name, &Option::<String>::None),
-        Value::Bytes(Some(v)) => stmt.add_param(param_name, v.as_ref()),
+        Value::Bytes(Some(v)) => {
+            let b: &[u8] = v.as_ref();
+            stmt.add_param(param_name, &b)
+        }
         Value::Bytes(None) => stmt.add_param(param_name, &Option::<Vec<u8>>::None),
 
         #[cfg(feature = "with-chrono")]
