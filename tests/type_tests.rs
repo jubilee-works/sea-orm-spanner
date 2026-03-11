@@ -522,9 +522,7 @@ mod timestamp_type_tests {
         let db = setup_test_database().await;
         let id = uuid::Uuid::new_v4().to_string();
 
-        let specific_time = Utc
-            .with_ymd_and_hms(2026, 1, 31, 7, 30, 8)
-            .unwrap();
+        let specific_time = Utc.with_ymd_and_hms(2026, 1, 31, 7, 30, 8).unwrap();
         let model = all_types::ActiveModel {
             timestamp_val: Set(specific_time),
             timestamp_nullable: Set(Some(specific_time)),
@@ -573,9 +571,7 @@ mod timestamp_type_tests {
         let db = setup_test_database().await;
         let id = uuid::Uuid::new_v4().to_string();
 
-        let specific_time = Utc
-            .with_ymd_and_hms(2024, 6, 15, 12, 30, 45)
-            .unwrap();
+        let specific_time = Utc.with_ymd_and_hms(2024, 6, 15, 12, 30, 45).unwrap();
         let model = all_types::ActiveModel {
             timestamp_val: Set(specific_time),
             timestamp_nullable: Set(Some(specific_time)),
@@ -583,14 +579,20 @@ mod timestamp_type_tests {
         };
 
         let inserted = model.insert(&db).await.expect("Insert failed");
-        assert_eq!(inserted.timestamp_val.date_naive(), specific_time.date_naive());
+        assert_eq!(
+            inserted.timestamp_val.date_naive(),
+            specific_time.date_naive()
+        );
 
         let selected = all_types::Entity::find_by_id(&id)
             .one(&db)
             .await
             .expect("Select failed")
             .expect("Entity not found");
-        assert_eq!(selected.timestamp_val.date_naive(), specific_time.date_naive());
+        assert_eq!(
+            selected.timestamp_val.date_naive(),
+            specific_time.date_naive()
+        );
     }
 
     #[tokio::test]
