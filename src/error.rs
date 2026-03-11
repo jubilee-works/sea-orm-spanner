@@ -1,8 +1,9 @@
-use gcloud_gax::grpc::Status;
-use gcloud_gax::retry::TryAs;
-use gcloud_spanner::session::SessionError;
-use sea_orm::DbErr;
-use thiserror::Error;
+use {
+    gcloud_gax::{grpc::Status, retry::TryAs},
+    gcloud_spanner::session::SessionError,
+    sea_orm::DbErr,
+    thiserror::Error,
+};
 
 /// Error type for use in Spanner transactions that satisfies google-cloud-spanner bounds
 #[derive(Debug)]

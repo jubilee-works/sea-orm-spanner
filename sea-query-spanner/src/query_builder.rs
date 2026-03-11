@@ -97,8 +97,10 @@ impl QueryBuilder for SpannerQueryBuilder {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use sea_query::{Alias, Expr, Query};
+    use {
+        super::*,
+        sea_query::{Alias, Expr, Query},
+    };
 
     #[test]
     fn test_select_basic() {

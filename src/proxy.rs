@@ -1,20 +1,15 @@
-use crate::array_support::*;
-use crate::error::SpannerDbErr;
-use async_trait::async_trait;
-use gcloud_googleapis::spanner::v1::struct_type::Field;
-use gcloud_googleapis::spanner::v1::TypeCode;
-use gcloud_spanner::client::Client;
-
-use gcloud_spanner::statement::Statement as SpannerStatement;
-use sea_orm::ProxyDatabaseTrait;
-use sea_orm::ProxyExecResult;
-use sea_orm::ProxyRow;
-use sea_orm::{DbErr, Statement};
-use sea_query::{ArrayType, Value};
-use std::collections::BTreeMap;
-use std::sync::Arc;
-
-use crate::error::SpannerTxError;
+use {
+    crate::{
+        array_support::*,
+        error::{SpannerDbErr, SpannerTxError},
+    },
+    async_trait::async_trait,
+    gcloud_googleapis::spanner::v1::{struct_type::Field, TypeCode},
+    gcloud_spanner::{client::Client, statement::Statement as SpannerStatement},
+    sea_orm::{DbErr, ProxyDatabaseTrait, ProxyExecResult, ProxyRow, Statement},
+    sea_query::{ArrayType, Value},
+    std::{collections::BTreeMap, sync::Arc},
+};
 
 pub struct SpannerProxy {
     client: Arc<Client>,

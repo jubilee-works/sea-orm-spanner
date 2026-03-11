@@ -1,6 +1,8 @@
-use gcloud_googleapis::spanner::v1::{Type, TypeAnnotationCode, TypeCode};
-use gcloud_spanner::statement::ToKind;
-use prost_types::{value, ListValue, Value};
+use {
+    gcloud_googleapis::spanner::v1::{Type, TypeAnnotationCode, TypeCode},
+    gcloud_spanner::statement::ToKind,
+    prost_types::{value, ListValue, Value},
+};
 
 pub struct SpannerInt64Array(pub Vec<i64>);
 

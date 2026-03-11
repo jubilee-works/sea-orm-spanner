@@ -1,14 +1,16 @@
 mod common;
 mod entity;
 
-use chrono::Utc;
-use common::setup_test_database;
-use entity::{category, post, product, user};
-use sea_orm::{
-    ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, ModelTrait, PaginatorTrait,
-    QueryFilter, QueryOrder, QuerySelect, Set,
+use {
+    chrono::Utc,
+    common::setup_test_database,
+    entity::{category, post, product, user},
+    sea_orm::{
+        ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, ModelTrait, PaginatorTrait,
+        QueryFilter, QueryOrder, QuerySelect, Set,
+    },
+    serial_test::serial,
 };
-use serial_test::serial;
 
 mod insert_tests {
     use super::*;
@@ -539,8 +541,7 @@ mod pagination_tests {
 }
 
 mod aggregate_tests {
-    use super::*;
-    use sea_orm::FromQueryResult;
+    use {super::*, sea_orm::FromQueryResult};
 
     #[derive(Debug, FromQueryResult)]
     struct PostCount {
@@ -735,7 +736,7 @@ mod complex_query_tests {
             .await
             .unwrap();
 
-        assert!(products.len() >= 1);
+        assert!(!products.is_empty());
     }
 
     #[tokio::test]

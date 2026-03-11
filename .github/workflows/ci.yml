@@ -61,13 +61,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust toolchain
+      - name: Install nightly Rust toolchain
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rustfmt
+
+      - name: Install stable Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          components: rustfmt, clippy
+          components: clippy
 
       - name: Check formatting
-        run: cargo fmt --all -- --check
+        run: make fmt-check
 
       - name: Clippy
-        run: cargo clippy --all-features -- -D warnings
+        run: make lint
