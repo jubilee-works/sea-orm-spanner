@@ -511,9 +511,9 @@ impl SpannerProxy {
                                 odt.nanosecond(),
                             )
                             .unwrap_or(chrono::DateTime::UNIX_EPOCH);
-                            Ok(Value::ChronoDateTime(Some(chrono_dt.naive_utc())))
+                            Ok(Value::ChronoDateTimeUtc(Some(chrono_dt)))
                         }
-                        None => Ok(Value::ChronoDateTime(None)),
+                        None => Ok(Value::ChronoDateTimeUtc(None)),
                     }
                 }
                 #[cfg(not(feature = "with-chrono"))]
