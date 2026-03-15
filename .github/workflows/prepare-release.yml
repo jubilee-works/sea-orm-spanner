@@ -44,9 +44,13 @@ jobs:
           TEMPLATE
           sed -i 's/^          //' "releases/v${VERSION}.md"
 
-      - name: Verify build
+      - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
-      - run: cargo check --all-features
+      - name: Verify root workspace
+        run: cargo check --all-features
+      - name: Verify sea-orm-migration-spanner
+        run: cargo check --all-features
+        working-directory: sea-orm-migration-spanner
 
       - name: Create pull request
         uses: peter-evans/create-pull-request@v7
