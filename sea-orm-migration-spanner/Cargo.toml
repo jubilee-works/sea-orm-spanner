@@ -22,8 +22,8 @@ sea-orm = { version = "2.0.0-rc.37", features = [
     "macros",
 ] }
 sea-orm-migration = { version = "2.0.0-rc.37" }
-sea-orm-spanner = { path = ".." }
-sea-query-spanner = { path = "../sea-query-spanner" }
+sea-orm-spanner = { version = "0.1.0", path = ".." }
+sea-query-spanner = { version = "0.1.0", path = "../sea-query-spanner" }
 gcloud-spanner = "1.7.0"
 gcloud-googleapis = { version = "1.3.0", features = ["spanner"] }
 gcloud-gax = "1.3.2"
