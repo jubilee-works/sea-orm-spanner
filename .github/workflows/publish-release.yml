@@ -57,24 +57,28 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Publish sea-query-spanner
+      - name: Publish crates
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: cargo publish -p sea-query-spanner
+        run: |
+          publish_with_retry() {
+            local max_attempts=10
+            local delay=15
+            for attempt in $(seq 1 $max_attempts); do
+              echo "Attempt $attempt/$max_attempts: $*"
+              if "$@" 2>&1; then
+                return 0
+              fi
+              if [[ $attempt -lt $max_attempts ]]; then
+                echo "Retrying in ${delay}s..."
+                sleep $delay
+                delay=$((delay + 15))
+              fi
+            done
+            echo "::error::Failed after $max_attempts attempts: $*"
+            return 1
+          }
 
-      - name: Wait for crates.io index
-        run: sleep 30
-
-      - name: Publish sea-orm-spanner
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: cargo publish
-
-      - name: Wait for crates.io index
-        run: sleep 30
-
-      - name: Publish sea-orm-migration-spanner
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        working-directory: sea-orm-migration-spanner
-        run: cargo publish
+          cargo publish -p sea-query-spanner
+          publish_with_retry cargo publish
+          publish_with_retry cargo publish --manifest-path sea-orm-migration-spanner/Cargo.toml
