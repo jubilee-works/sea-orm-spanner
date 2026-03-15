@@ -1,0 +1,59 @@
+name: Prepare Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Semver bump type"
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bump versions
+        run: ./scripts/bump-version.sh ${{ inputs.bump }}
+
+      - name: Read new version
+        id: version
+        run: |
+          VERSION=$(grep -m1 '^version' Cargo.toml | sed 's/version = "\(.*\)"/\1/')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Verify build
+        uses: dtolnay/rust-toolchain@stable
+      - run: cargo check --all-features
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: release/v${{ steps.version.outputs.version }}
+          commit-message: "chore: bump version to ${{ steps.version.outputs.version }}"
+          title: "chore: release v${{ steps.version.outputs.version }}"
+          body: |
+            ## Summary
+            Bump all crate versions to `${{ steps.version.outputs.version }}` (${{ inputs.bump }}).
+
+            ### Crates
+            - `sea-query-spanner` → ${{ steps.version.outputs.version }}
+            - `sea-orm-spanner` → ${{ steps.version.outputs.version }}
+            - `sea-orm-migration-spanner` → ${{ steps.version.outputs.version }}
+
+            ### Publishing Order
+            ```bash
+            cargo publish -p sea-query-spanner
+            cargo publish
+            cd sea-orm-migration-spanner && cargo publish
+            ```
