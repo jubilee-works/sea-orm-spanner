@@ -17,11 +17,11 @@ name = "sea_orm_migration_spanner"
 path = "src/lib.rs"
 
 [dependencies]
-sea-orm = { git = "https://github.com/SeaQL/sea-orm.git", tag = "2.0.0-rc.32", features = [
+sea-orm = { version = "2.0.0-rc.37", features = [
     "runtime-tokio-native-tls",
     "macros",
 ] }
-sea-orm-migration = { git = "https://github.com/SeaQL/sea-orm.git", tag = "2.0.0-rc.32" }
+sea-orm-migration = { version = "2.0.0-rc.37" }
 sea-orm-spanner = { path = ".." }
 sea-query-spanner = { path = "../sea-query-spanner" }
 gcloud-spanner = "1.7.0"
