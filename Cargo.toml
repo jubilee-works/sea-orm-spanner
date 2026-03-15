@@ -18,6 +18,8 @@ exclude = [
     "Makefile",
     "sea-orm-spanner-plan.md",
     "examples/",
+    "releases/",
+    "scripts/",
 ]
 
 [lib]

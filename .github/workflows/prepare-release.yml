@@ -22,6 +22,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Bump versions
         run: ./scripts/bump-version.sh ${{ inputs.bump }}
@@ -31,6 +33,15 @@ jobs:
         run: |
           VERSION=$(grep -m1 '^version' Cargo.toml | sed 's/version = "\(.*\)"/\1/')
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Create release notes template
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          mkdir -p releases
+          cat > "releases/v${VERSION}.md" << 'TEMPLATE'
+          Write release notes here before merging.
+          TEMPLATE
+          sed -i 's/^          //' "releases/v${VERSION}.md"
 
       - name: Verify build
         uses: dtolnay/rust-toolchain@stable
@@ -43,17 +54,12 @@ jobs:
           commit-message: "chore: bump version to ${{ steps.version.outputs.version }}"
           title: "chore: release v${{ steps.version.outputs.version }}"
           body: |
-            ## Summary
-            Bump all crate versions to `${{ steps.version.outputs.version }}` (${{ inputs.bump }}).
+            ## Release v${{ steps.version.outputs.version }}
+
+            **Before merging**, edit `releases/v${{ steps.version.outputs.version }}.md` with release notes.
+            The contents will be used as the GitHub Release body and git tag annotation.
 
             ### Crates
             - `sea-query-spanner` → ${{ steps.version.outputs.version }}
             - `sea-orm-spanner` → ${{ steps.version.outputs.version }}
             - `sea-orm-migration-spanner` → ${{ steps.version.outputs.version }}
-
-            ### Publishing Order
-            ```bash
-            cargo publish -p sea-query-spanner
-            cargo publish
-            cd sea-orm-migration-spanner && cargo publish
-            ```
