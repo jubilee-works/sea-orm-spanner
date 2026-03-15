@@ -1,20 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Usage: ./scripts/bump-version.sh <patch|minor|major>
+# Usage: ./scripts/bump-version.sh <none|patch|minor|major>
 #
 # Bumps version for all crates in the workspace and syncs inter-crate dependency versions.
 # All 3 crates are kept at the same version.
+# Use "none" to skip bumping (for initial release at current version).
 
 BUMP_TYPE="${1:-}"
 
 if [[ -z "$BUMP_TYPE" ]]; then
-  echo "Usage: $0 <patch|minor|major>"
+  echo "Usage: $0 <none|patch|minor|major>"
   exit 1
 fi
 
-if [[ "$BUMP_TYPE" != "patch" && "$BUMP_TYPE" != "minor" && "$BUMP_TYPE" != "major" ]]; then
-  echo "Error: bump type must be one of: patch, minor, major"
+if [[ "$BUMP_TYPE" != "none" && "$BUMP_TYPE" != "patch" && "$BUMP_TYPE" != "minor" && "$BUMP_TYPE" != "major" ]]; then
+  echo "Error: bump type must be one of: none, patch, minor, major"
   exit 1
 fi
 
@@ -24,6 +25,11 @@ CURRENT_VERSION=$(grep -m1 '^version' Cargo.toml | sed 's/version = "\(.*\)"/\1/
 if [[ -z "$CURRENT_VERSION" ]]; then
   echo "Error: could not read current version from Cargo.toml"
   exit 1
+fi
+
+if [[ "$BUMP_TYPE" == "none" ]]; then
+  echo "Keeping current version: $CURRENT_VERSION"
+  exit 0
 fi
 
 IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
