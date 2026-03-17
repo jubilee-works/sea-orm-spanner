@@ -70,8 +70,13 @@ fn mysql_ddl_to_spanner(mysql_ddl: &str) -> String {
     let unsigned_re = Regex::new(r"(?i)\s+UNSIGNED").unwrap();
     sql = unsigned_re.replace_all(&sql, "").to_string();
 
-    let unique_key_re = Regex::new(r"(?i)\s+UNIQUE(\s+KEY)?").unwrap();
-    sql = unique_key_re.replace_all(&sql, "").to_string();
+    let is_create_unique_index = Regex::new(r"(?i)^CREATE\s+UNIQUE\s+INDEX")
+        .unwrap()
+        .is_match(&sql);
+    if !is_create_unique_index {
+        let unique_key_re = Regex::new(r"(?i)\s+UNIQUE(\s+KEY)?").unwrap();
+        sql = unique_key_re.replace_all(&sql, "").to_string();
+    }
 
     // Type conversions (order matters - more specific patterns first)
 
@@ -373,5 +378,59 @@ impl SchemaManager {
     pub async fn drop_column(&self, table: &str, column_name: &str) -> Result<(), DbErr> {
         let alter = SpannerAlterTable::drop_column(table, column_name);
         self.execute_ddl(vec![alter.build()]).await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_create_unique_index_preserved() {
+        let input = "CREATE UNIQUE INDEX `idx_accounts_user_id` ON `accounts` (`user_id`)";
+        let result = mysql_ddl_to_spanner(input);
+        assert!(
+            result.contains("UNIQUE"),
+            "UNIQUE must be preserved in CREATE UNIQUE INDEX, got: {}",
+            result
+        );
+        assert_eq!(
+            result,
+            "CREATE UNIQUE INDEX `idx_accounts_user_id` ON `accounts` (`user_id`)"
+        );
+    }
+
+    #[test]
+    fn test_create_non_unique_index_unchanged() {
+        let input = "CREATE INDEX `idx_accounts_email` ON `accounts` (`email`)";
+        let result = mysql_ddl_to_spanner(input);
+        assert_eq!(
+            result,
+            "CREATE INDEX `idx_accounts_email` ON `accounts` (`email`)"
+        );
+    }
+
+    #[test]
+    fn test_table_inline_unique_key_stripped() {
+        let input =
+            "CREATE TABLE `accounts` ( `id` int NOT NULL PRIMARY KEY, `email` varchar(255) NOT NULL UNIQUE KEY)";
+        let result = mysql_ddl_to_spanner(input);
+        assert!(
+            !result.contains("UNIQUE"),
+            "inline UNIQUE KEY must be stripped from table DDL, got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_table_inline_unique_stripped() {
+        let input =
+            "CREATE TABLE `accounts` ( `id` int NOT NULL PRIMARY KEY, `email` varchar(255) NOT NULL UNIQUE)";
+        let result = mysql_ddl_to_spanner(input);
+        assert!(
+            !result.contains("UNIQUE"),
+            "inline UNIQUE must be stripped from table DDL, got: {}",
+            result
+        );
     }
 }
