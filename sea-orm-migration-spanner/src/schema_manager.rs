@@ -1,3 +1,5 @@
+use std::{sync::LazyLock, time::Duration};
+
 use gcloud_gax::conn::{ConnectionManager, ConnectionOptions};
 use gcloud_googleapis::spanner::admin::database::v1::UpdateDatabaseDdlRequest;
 use gcloud_longrunning::autogen::operations_client::OperationsClient;
@@ -11,7 +13,43 @@ use sea_orm::sea_query::{
 };
 use sea_orm::DbErr;
 use sea_query_spanner::{SpannerAlterTable, SpannerIndexBuilder, SpannerTableBuilder};
-use std::time::Duration;
+
+macro_rules! regex {
+    ($pattern:expr) => {
+        LazyLock::new(|| Regex::new($pattern).expect(concat!("invalid regex: ", $pattern)))
+    };
+}
+
+static RE_IF_NOT_EXISTS: LazyLock<Regex> = regex!(r"(?i)\s*IF\s+NOT\s+EXISTS");
+static RE_IF_EXISTS: LazyLock<Regex> = regex!(r"(?i)\s*IF\s+EXISTS");
+static RE_AUTO_INCREMENT: LazyLock<Regex> = regex!(r"(?i)\s*AUTO_INCREMENT");
+static RE_ENGINE: LazyLock<Regex> = regex!(r"(?i)\s*ENGINE\s*=\s*\w+");
+static RE_CHARSET: LazyLock<Regex> = regex!(r"(?i)\s*(DEFAULT\s+)?CHARSET\s*=\s*\w+");
+static RE_CHARACTER_SET: LazyLock<Regex> = regex!(r"(?i)\s*CHARACTER\s+SET\s+\w+");
+static RE_COLLATE: LazyLock<Regex> = regex!(r"(?i)\s*COLLATE\s*=?\s*\w+");
+static RE_DEFAULT: LazyLock<Regex> = regex!(r"(?i)\s*DEFAULT\s+(?:'[^']*'|\d+|NULL|TRUE|FALSE)");
+static RE_UNSIGNED: LazyLock<Regex> = regex!(r"(?i)\s+UNSIGNED");
+static RE_CREATE_UNIQUE_INDEX: LazyLock<Regex> = regex!(r"(?i)^CREATE\s+UNIQUE\s+INDEX");
+static RE_UNIQUE_KEY: LazyLock<Regex> = regex!(r"(?i)\s+UNIQUE(\s+KEY)?");
+static RE_TINYINT1: LazyLock<Regex> = regex!(r"(?i)\bTINYINT\s*\(\s*1\s*\)");
+static RE_INT_TYPES: LazyLock<Regex> = regex!(r"(?i)\b(BIG)?INT(EGER)?\b\s*(\(\s*\d+\s*\))?");
+static RE_SMALLINT: LazyLock<Regex> = regex!(r"(?i)\b(SMALL|TINY|MEDIUM)INT\b\s*(\(\s*\d+\s*\))?");
+static RE_VARCHAR: LazyLock<Regex> = regex!(r"(?i)\b(VAR)?CHAR\s*\(\s*(\d+)\s*\)");
+static RE_TEXT: LazyLock<Regex> = regex!(r"(?i)\b(LONG|MEDIUM)?TEXT");
+static RE_BOOL: LazyLock<Regex> = regex!(r"(?i)\bBOOL(EAN)?");
+static RE_FLOAT: LazyLock<Regex> =
+    regex!(r"(?i)\b(FLOAT|DOUBLE|REAL)(\s*\(\s*\d+\s*(,\s*\d+\s*)?\))?");
+static RE_DECIMAL: LazyLock<Regex> =
+    regex!(r"(?i)\b(DECIMAL|NUMERIC)\s*(\(\s*\d+\s*(,\s*\d+\s*)?\))?");
+static RE_DATETIME: LazyLock<Regex> = regex!(r"(?i)\bDATETIME\s*(\(\s*\d+\s*\))?");
+static RE_TIMESTAMP: LazyLock<Regex> = regex!(r"(?i)\bTIMESTAMP\s*(\(\s*\d+\s*\))?");
+static RE_BLOB: LazyLock<Regex> = regex!(r"(?i)\b(LONG|MEDIUM|TINY)?BLOB");
+static RE_BINARY16: LazyLock<Regex> = regex!(r"(?i)\bBINARY\s*\(\s*16\s*\)");
+static RE_BINARY: LazyLock<Regex> = regex!(r"(?i)\b(VAR)?BINARY\s*\(\s*(\d+)\s*\)");
+static RE_INLINE_PK: LazyLock<Regex> =
+    regex!(r"(?i)`?(\w+)`?\s+(\w+(?:\s*\([^)]*\))?)\s+NOT\s+NULL\s+PRIMARY\s+KEY");
+static RE_MULTI_SPACE: LazyLock<Regex> = regex!(r"  +");
+static RE_TRAILING_COMMA: LazyLock<Regex> = regex!(r",\s*\)");
 
 /// Convert MySQL DDL to Spanner DDL
 ///
@@ -36,105 +74,38 @@ use std::time::Duration;
 fn mysql_ddl_to_spanner(mysql_ddl: &str) -> String {
     let mut sql = mysql_ddl.to_string();
 
-    let if_not_exists_re = Regex::new(r"(?i)\s*IF\s+NOT\s+EXISTS").unwrap();
-    sql = if_not_exists_re.replace_all(&sql, "").to_string();
+    sql = RE_IF_NOT_EXISTS.replace_all(&sql, "").to_string();
+    sql = RE_IF_EXISTS.replace_all(&sql, "").to_string();
+    sql = RE_AUTO_INCREMENT.replace_all(&sql, "").to_string();
+    sql = RE_ENGINE.replace_all(&sql, "").to_string();
+    sql = RE_CHARSET.replace_all(&sql, "").to_string();
+    sql = RE_CHARACTER_SET.replace_all(&sql, "").to_string();
+    sql = RE_COLLATE.replace_all(&sql, "").to_string();
+    sql = RE_DEFAULT.replace_all(&sql, "").to_string();
+    sql = RE_UNSIGNED.replace_all(&sql, "").to_string();
 
-    let if_exists_re = Regex::new(r"(?i)\s*IF\s+EXISTS").unwrap();
-    sql = if_exists_re.replace_all(&sql, "").to_string();
+    if !RE_CREATE_UNIQUE_INDEX.is_match(&sql) {
+        sql = RE_UNIQUE_KEY.replace_all(&sql, "").to_string();
+    }
 
-    let auto_inc_re = Regex::new(r"(?i)\s*AUTO_INCREMENT").unwrap();
-    sql = auto_inc_re.replace_all(&sql, "").to_string();
+    sql = RE_TINYINT1.replace_all(&sql, "BOOL").to_string();
+    sql = RE_INT_TYPES.replace_all(&sql, "INT64 ").to_string();
+    sql = RE_SMALLINT.replace_all(&sql, "INT64 ").to_string();
+    sql = RE_VARCHAR.replace_all(&sql, "STRING($2)").to_string();
+    sql = RE_TEXT.replace_all(&sql, "STRING(MAX)").to_string();
+    sql = RE_BOOL.replace_all(&sql, "BOOL").to_string();
+    sql = RE_FLOAT.replace_all(&sql, "FLOAT64").to_string();
+    sql = RE_DECIMAL.replace_all(&sql, "NUMERIC").to_string();
+    sql = RE_DATETIME.replace_all(&sql, "TIMESTAMP ").to_string();
+    sql = RE_TIMESTAMP.replace_all(&sql, "TIMESTAMP ").to_string();
+    sql = RE_BLOB.replace_all(&sql, "BYTES(MAX)").to_string();
+    sql = RE_BINARY16.replace_all(&sql, "UUID").to_string();
+    sql = RE_BINARY.replace_all(&sql, "BYTES($2)").to_string();
 
-    // Remove ENGINE clause
-    let engine_re = Regex::new(r"(?i)\s*ENGINE\s*=\s*\w+").unwrap();
-    sql = engine_re.replace_all(&sql, "").to_string();
-
-    // Remove CHARSET clause
-    let charset_re = Regex::new(r"(?i)\s*(DEFAULT\s+)?CHARSET\s*=\s*\w+").unwrap();
-    sql = charset_re.replace_all(&sql, "").to_string();
-
-    // Remove CHARACTER SET clause
-    let char_set_re = Regex::new(r"(?i)\s*CHARACTER\s+SET\s+\w+").unwrap();
-    sql = char_set_re.replace_all(&sql, "").to_string();
-
-    // Remove COLLATE clause
-    let collate_re = Regex::new(r"(?i)\s*COLLATE\s*=?\s*\w+").unwrap();
-    sql = collate_re.replace_all(&sql, "").to_string();
-
-    // Remove DEFAULT values (Spanner doesn't support DEFAULT in CREATE TABLE for most types)
-    // Be careful to not remove DEFAULT CURRENT_TIMESTAMP patterns
-    let default_re = Regex::new(r"(?i)\s*DEFAULT\s+(?:'[^']*'|\d+|NULL|TRUE|FALSE)").unwrap();
-    sql = default_re.replace_all(&sql, "").to_string();
-
-    // Remove UNSIGNED (Spanner INT64 is always signed)
-    let unsigned_re = Regex::new(r"(?i)\s+UNSIGNED").unwrap();
-    sql = unsigned_re.replace_all(&sql, "").to_string();
-
-    let unique_key_re = Regex::new(r"(?i)\s+UNIQUE(\s+KEY)?").unwrap();
-    sql = unique_key_re.replace_all(&sql, "").to_string();
-
-    // Type conversions (order matters - more specific patterns first)
-
-    // TINYINT(1) → BOOL (MySQL boolean pattern)
-    let tinyint1_re = Regex::new(r"(?i)\bTINYINT\s*\(\s*1\s*\)").unwrap();
-    sql = tinyint1_re.replace_all(&sql, "BOOL").to_string();
-
-    let int_types_re = Regex::new(r"(?i)\b(BIG)?INT(EGER)?\b\s*(\(\s*\d+\s*\))?").unwrap();
-    sql = int_types_re.replace_all(&sql, "INT64 ").to_string();
-
-    let smallint_re = Regex::new(r"(?i)\b(SMALL|TINY|MEDIUM)INT\b\s*(\(\s*\d+\s*\))?").unwrap();
-    sql = smallint_re.replace_all(&sql, "INT64 ").to_string();
-
-    // VARCHAR/CHAR → STRING
-    let varchar_re = Regex::new(r"(?i)\b(VAR)?CHAR\s*\(\s*(\d+)\s*\)").unwrap();
-    sql = varchar_re.replace_all(&sql, "STRING($2)").to_string();
-
-    // TEXT types → STRING(MAX)
-    let text_re = Regex::new(r"(?i)\b(LONG|MEDIUM)?TEXT").unwrap();
-    sql = text_re.replace_all(&sql, "STRING(MAX)").to_string();
-
-    // BOOLEAN/BOOL → BOOL
-    let bool_re = Regex::new(r"(?i)\bBOOL(EAN)?").unwrap();
-    sql = bool_re.replace_all(&sql, "BOOL").to_string();
-
-    // FLOAT/DOUBLE/REAL → FLOAT64
-    let float_re =
-        Regex::new(r"(?i)\b(FLOAT|DOUBLE|REAL)(\s*\(\s*\d+\s*(,\s*\d+\s*)?\))?").unwrap();
-    sql = float_re.replace_all(&sql, "FLOAT64").to_string();
-
-    // DECIMAL/NUMERIC → NUMERIC (Spanner supports this)
-    let decimal_re =
-        Regex::new(r"(?i)\b(DECIMAL|NUMERIC)\s*(\(\s*\d+\s*(,\s*\d+\s*)?\))?").unwrap();
-    sql = decimal_re.replace_all(&sql, "NUMERIC").to_string();
-
-    // DATETIME → TIMESTAMP
-    let datetime_re = Regex::new(r"(?i)\bDATETIME\s*(\(\s*\d+\s*\))?").unwrap();
-    sql = datetime_re.replace_all(&sql, "TIMESTAMP ").to_string();
-
-    let timestamp_re = Regex::new(r"(?i)\bTIMESTAMP\s*(\(\s*\d+\s*\))?").unwrap();
-    sql = timestamp_re.replace_all(&sql, "TIMESTAMP ").to_string();
-
-    // DATE stays DATE
-
-    // BLOB/BINARY/VARBINARY → BYTES
-    let blob_re = Regex::new(r"(?i)\b(LONG|MEDIUM|TINY)?BLOB").unwrap();
-    sql = blob_re.replace_all(&sql, "BYTES(MAX)").to_string();
-
-    // BINARY(16) → UUID (SeaORM MySQL backend generates BINARY(16) for Uuid type)
-    let binary16_re = Regex::new(r"(?i)\bBINARY\s*\(\s*16\s*\)").unwrap();
-    sql = binary16_re.replace_all(&sql, "UUID").to_string();
-
-    let binary_re = Regex::new(r"(?i)\b(VAR)?BINARY\s*\(\s*(\d+)\s*\)").unwrap();
-    sql = binary_re.replace_all(&sql, "BYTES($2)").to_string();
-
-    // JSON stays JSON (Spanner supports JSON)
-
-    let inline_pk_re =
-        Regex::new(r"(?i)`?(\w+)`?\s+(\w+(?:\s*\([^)]*\))?)\s+NOT\s+NULL\s+PRIMARY\s+KEY").unwrap();
-    let pk_col = if let Some(caps) = inline_pk_re.captures(&sql) {
-        let col_name = caps.get(1).unwrap().as_str().to_string();
-        let col_type = caps.get(2).unwrap().as_str().to_string();
-        sql = inline_pk_re
+    let pk_col = if let Some(caps) = RE_INLINE_PK.captures(&sql) {
+        let col_name = caps.get(1).expect("capture group 1").as_str().to_string();
+        let col_type = caps.get(2).expect("capture group 2").as_str().to_string();
+        sql = RE_INLINE_PK
             .replace(&sql, &format!("`{}` {} NOT NULL", col_name, col_type))
             .to_string();
         Some(col_name)
@@ -142,11 +113,8 @@ fn mysql_ddl_to_spanner(mysql_ddl: &str) -> String {
         None
     };
 
-    let multi_space_re = Regex::new(r"  +").unwrap();
-    sql = multi_space_re.replace_all(&sql, " ").to_string();
-
-    let trailing_comma_re = Regex::new(r",\s*\)").unwrap();
-    sql = trailing_comma_re.replace_all(&sql, ")").to_string();
+    sql = RE_MULTI_SPACE.replace_all(&sql, " ").to_string();
+    sql = RE_TRAILING_COMMA.replace_all(&sql, ")").to_string();
 
     if let Some(col_name) = pk_col {
         if !sql.to_uppercase().contains("PRIMARY KEY (")
@@ -373,5 +341,59 @@ impl SchemaManager {
     pub async fn drop_column(&self, table: &str, column_name: &str) -> Result<(), DbErr> {
         let alter = SpannerAlterTable::drop_column(table, column_name);
         self.execute_ddl(vec![alter.build()]).await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_create_unique_index_preserved() {
+        let input = "CREATE UNIQUE INDEX `idx_accounts_user_id` ON `accounts` (`user_id`)";
+        let result = mysql_ddl_to_spanner(input);
+        assert!(
+            result.contains("UNIQUE"),
+            "UNIQUE must be preserved in CREATE UNIQUE INDEX, got: {}",
+            result
+        );
+        assert_eq!(
+            result,
+            "CREATE UNIQUE INDEX `idx_accounts_user_id` ON `accounts` (`user_id`)"
+        );
+    }
+
+    #[test]
+    fn test_create_non_unique_index_unchanged() {
+        let input = "CREATE INDEX `idx_accounts_email` ON `accounts` (`email`)";
+        let result = mysql_ddl_to_spanner(input);
+        assert_eq!(
+            result,
+            "CREATE INDEX `idx_accounts_email` ON `accounts` (`email`)"
+        );
+    }
+
+    #[test]
+    fn test_table_inline_unique_key_stripped() {
+        let input =
+            "CREATE TABLE `accounts` ( `id` int NOT NULL PRIMARY KEY, `email` varchar(255) NOT NULL UNIQUE KEY)";
+        let result = mysql_ddl_to_spanner(input);
+        assert!(
+            !result.contains("UNIQUE"),
+            "inline UNIQUE KEY must be stripped from table DDL, got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_table_inline_unique_stripped() {
+        let input =
+            "CREATE TABLE `accounts` ( `id` int NOT NULL PRIMARY KEY, `email` varchar(255) NOT NULL UNIQUE)";
+        let result = mysql_ddl_to_spanner(input);
+        assert!(
+            !result.contains("UNIQUE"),
+            "inline UNIQUE must be stripped from table DDL, got: {}",
+            result
+        );
     }
 }
