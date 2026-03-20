@@ -12,7 +12,7 @@ pub use crate::sea_orm_migration;
 pub use async_trait::async_trait;
 pub use sea_orm::{
     sea_query::{self, *},
-    ConnectionTrait, DbErr, DeriveIden,
+    ConnectionTrait, DatabaseConnection, DbErr, DeriveIden, ExecResult,
 };
 pub use sea_orm_migration::prelude::DeriveMigrationName;
 pub use sea_query_spanner::{SpannerAlterTable, SpannerIndexBuilder, SpannerTableBuilder};

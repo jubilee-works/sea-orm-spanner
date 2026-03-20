@@ -11,7 +11,8 @@ use sea_orm::sea_query::{
     backend::MysqlQueryBuilder, IndexCreateStatement, IndexDropStatement, TableAlterStatement,
     TableCreateStatement, TableDropStatement,
 };
-use sea_orm::DbErr;
+use sea_orm::{ConnectionTrait, DatabaseConnection, DbErr, ExecResult};
+use sea_orm_spanner::SpannerDatabase;
 use sea_query_spanner::{SpannerAlterTable, SpannerIndexBuilder, SpannerTableBuilder};
 
 macro_rules! regex {
@@ -137,21 +138,68 @@ fn mysql_ddl_to_spanner(mysql_ddl: &str) -> String {
 ///
 /// Provides methods to execute DDL statements against Spanner.
 /// Supports both raw DDL strings and builder patterns.
+///
+/// Also holds a [`DatabaseConnection`] for executing DML (INSERT, UPDATE, DELETE)
+/// within migrations via [`get_connection()`](SchemaManager::get_connection) or
+/// [`execute_unprepared()`](SchemaManager::execute_unprepared).
 pub struct SchemaManager {
     database_path: String,
+    conn: DatabaseConnection,
 }
 
 impl SchemaManager {
-    /// Create a new SchemaManager
-    pub fn new(database_path: &str) -> Self {
-        Self {
+    /// Create a new SchemaManager with a database connection
+    pub async fn new(database_path: &str) -> Result<Self, DbErr> {
+        let conn = SpannerDatabase::connect(database_path).await?;
+        Ok(Self {
             database_path: database_path.to_string(),
-        }
+            conn,
+        })
     }
 
     /// Get the database path
     pub fn database_path(&self) -> &str {
         &self.database_path
+    }
+
+    /// Get a reference to the underlying database connection
+    ///
+    /// Use this to execute DML statements (INSERT, UPDATE, DELETE) within migrations.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+    ///     // Create table first
+    ///     manager.create_table_spanner(/* ... */).await?;
+    ///
+    ///     // Then insert seed data
+    ///     let db = manager.get_connection();
+    ///     db.execute_unprepared("INSERT INTO config (key, value) VALUES ('version', '1')").await?;
+    ///     Ok(())
+    /// }
+    /// ```
+    pub fn get_connection(&self) -> &DatabaseConnection {
+        &self.conn
+    }
+
+    /// Execute a raw SQL statement (DML: INSERT, UPDATE, DELETE)
+    ///
+    /// Returns an [`ExecResult`] with the number of rows affected.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+    ///     manager.create_table_spanner(/* ... */).await?;
+    ///     manager.execute_unprepared(
+    ///         "INSERT INTO config (key, value) VALUES ('version', '1')"
+    ///     ).await?;
+    ///     Ok(())
+    /// }
+    /// ```
+    pub async fn execute_unprepared(&self, sql: &str) -> Result<ExecResult, DbErr> {
+        self.conn.execute_unprepared(sql).await
     }
 
     /// Execute multiple DDL statements

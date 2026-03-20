@@ -1,7 +1,6 @@
 use crate::schema_manager::SchemaManager;
 use sea_orm::sea_query::{Alias, Order, Query};
 use sea_orm::{ActiveValue, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, QueryFilter};
-use sea_orm_spanner::SpannerDatabase;
 use std::collections::HashSet;
 use std::time::SystemTime;
 use tracing::info;
@@ -77,12 +76,14 @@ pub trait MigratorTrait: Send {
     }
 
     async fn install(database_path: &str) -> Result<(), DbErr> {
-        let schema_manager = SchemaManager::new(database_path);
+        let schema_manager = SchemaManager::new(database_path).await?;
         schema_manager.create_table_raw(MIGRATIONS_TABLE_DDL).await
     }
 
-    async fn get_applied_versions(database_path: &str) -> Result<HashSet<String>, DbErr> {
-        let db = SpannerDatabase::connect(database_path).await?;
+    async fn get_applied_versions(
+        schema_manager: &SchemaManager,
+    ) -> Result<HashSet<String>, DbErr> {
+        let db = schema_manager.get_connection();
 
         let stmt = Query::select()
             .from(Alias::new("seaql_migrations"))
@@ -101,11 +102,15 @@ pub trait MigratorTrait: Send {
         Ok(versions)
     }
 
-    async fn get_migrations_with_status(database_path: &str) -> Result<Vec<Migration>, DbErr> {
-        Self::install(database_path).await?;
+    async fn get_migrations_with_status(
+        schema_manager: &SchemaManager,
+    ) -> Result<Vec<Migration>, DbErr> {
+        schema_manager
+            .create_table_raw(MIGRATIONS_TABLE_DDL)
+            .await?;
 
         let mut migrations = Self::get_migration_files();
-        let applied = Self::get_applied_versions(database_path).await?;
+        let applied = Self::get_applied_versions(schema_manager).await?;
 
         for migration in migrations.iter_mut() {
             if applied.contains(migration.name()) {
@@ -119,7 +124,8 @@ pub trait MigratorTrait: Send {
     async fn status(database_path: &str) -> Result<(), DbErr> {
         info!("Checking migration status");
 
-        let migrations = Self::get_migrations_with_status(database_path).await?;
+        let schema_manager = SchemaManager::new(database_path).await?;
+        let migrations = Self::get_migrations_with_status(&schema_manager).await?;
 
         for migration in migrations {
             let status = match migration.status {
@@ -134,7 +140,8 @@ pub trait MigratorTrait: Send {
     }
 
     async fn up(database_path: &str, steps: Option<u32>) -> Result<(), DbErr> {
-        let migrations = Self::get_migrations_with_status(database_path).await?;
+        let schema_manager = SchemaManager::new(database_path).await?;
+        let migrations = Self::get_migrations_with_status(&schema_manager).await?;
         let pending: Vec<_> = migrations
             .into_iter()
             .filter(|m| m.status == MigrationStatus::Pending)
@@ -145,9 +152,6 @@ pub trait MigratorTrait: Send {
             println!("No pending migrations");
             return Ok(());
         }
-
-        let schema_manager = SchemaManager::new(database_path);
-        let db = SpannerDatabase::connect(database_path).await?;
 
         let to_apply: Vec<_> = match steps {
             Some(n) => pending.into_iter().take(n as usize).collect(),
@@ -172,7 +176,7 @@ pub trait MigratorTrait: Send {
                 version: ActiveValue::Set(migration.name().to_string()),
                 applied_at: ActiveValue::Set(now),
             })
-            .exec(&db)
+            .exec(schema_manager.get_connection())
             .await?;
 
             info!("Migration '{}' has been applied", migration.name());
@@ -183,7 +187,8 @@ pub trait MigratorTrait: Send {
     }
 
     async fn down(database_path: &str, steps: Option<u32>) -> Result<(), DbErr> {
-        let migrations = Self::get_migrations_with_status(database_path).await?;
+        let schema_manager = SchemaManager::new(database_path).await?;
+        let migrations = Self::get_migrations_with_status(&schema_manager).await?;
         let mut applied: Vec<_> = migrations
             .into_iter()
             .filter(|m| m.status == MigrationStatus::Applied)
@@ -196,9 +201,6 @@ pub trait MigratorTrait: Send {
             println!("No applied migrations to rollback");
             return Ok(());
         }
-
-        let schema_manager = SchemaManager::new(database_path);
-        let db = SpannerDatabase::connect(database_path).await?;
 
         let to_rollback: Vec<_> = match steps {
             Some(n) => applied.into_iter().take(n as usize).collect(),
@@ -216,7 +218,7 @@ pub trait MigratorTrait: Send {
 
             seaql_migrations::Entity::delete_many()
                 .filter(seaql_migrations::Column::Version.eq(migration.name()))
-                .exec(&db)
+                .exec(schema_manager.get_connection())
                 .await?;
 
             info!("Migration '{}' has been rolled back", migration.name());
@@ -230,7 +232,7 @@ pub trait MigratorTrait: Send {
         info!("Dropping all tables and reapplying migrations");
         println!("Dropping all tables and reapplying migrations");
 
-        let schema_manager = SchemaManager::new(database_path);
+        let schema_manager = SchemaManager::new(database_path).await?;
 
         let migrations = Self::get_migration_files();
         for migration in migrations.iter().rev() {
@@ -245,7 +247,7 @@ pub trait MigratorTrait: Send {
     async fn reset(database_path: &str) -> Result<(), DbErr> {
         Self::down(database_path, None).await?;
 
-        let schema_manager = SchemaManager::new(database_path);
+        let schema_manager = SchemaManager::new(database_path).await?;
         schema_manager.drop_table_by_name("seaql_migrations").await
     }
 }
