@@ -1,8 +1,8 @@
-use crate::MigratorTrait;
-use clap::{Parser, Subcommand};
-use std::fs;
-use std::io::Write;
-use std::path::Path;
+use {
+    crate::MigratorTrait,
+    clap::{Parser, Subcommand},
+    std::{fs, io::Write, path::Path},
+};
 
 #[derive(Parser)]
 #[command(name = "migration")]
