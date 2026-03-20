@@ -13,3 +13,7 @@ lint:
 check:
 	cargo check
 	cd sea-orm-migration-spanner && cargo check
+
+test:
+	cargo test --all-features
+	cd sea-orm-migration-spanner && cargo test --all-features
