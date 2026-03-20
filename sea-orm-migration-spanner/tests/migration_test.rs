@@ -164,3 +164,89 @@ async fn test_migration_fresh() {
     let result = TestMigrator::reset(&db_path).await;
     assert!(result.is_ok(), "Reset failed: {:?}", result.err());
 }
+
+// --- DML support tests ---
+
+struct M20220101CreateConfig;
+
+impl MigrationName for M20220101CreateConfig {
+    fn name(&self) -> &str {
+        "m20220101_000001_create_config"
+    }
+}
+
+#[async_trait]
+impl MigrationTrait for M20220101CreateConfig {
+    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .create_table_spanner(
+                SpannerTableBuilder::new()
+                    .table("test_config")
+                    .string("key", Some(255), true)
+                    .string("value", Some(255), true)
+                    .primary_key(["key"]),
+            )
+            .await?;
+
+        // Test execute_unprepared on SchemaManager
+        manager
+            .execute_unprepared("INSERT INTO test_config (key, value) VALUES ('version', '1.0')")
+            .await?;
+
+        // Test get_connection for DML
+        let db = manager.get_connection();
+        db.execute_unprepared("INSERT INTO test_config (key, value) VALUES ('env', 'test')")
+            .await?;
+
+        Ok(())
+    }
+
+    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager.drop_table_by_name("test_config").await
+    }
+}
+
+struct DmlTestMigrator;
+
+impl MigratorTrait for DmlTestMigrator {
+    fn migrations() -> Vec<Box<dyn MigrationTrait>> {
+        vec![Box::new(M20220101CreateConfig)]
+    }
+}
+
+#[tokio::test]
+#[serial]
+async fn test_migration_dml_execute_unprepared() {
+    setup_test_database().await;
+
+    let db_path = database_path();
+
+    DmlTestMigrator::fresh(&db_path).await.ok();
+
+    let result = DmlTestMigrator::up(&db_path, None).await;
+    assert!(result.is_ok(), "Migration up failed: {:?}", result.err());
+
+    // Verify data was inserted by the migration
+    let manager = SchemaManager::new(&db_path).await.unwrap();
+    let db = manager.get_connection();
+
+    let stmt = sea_query::Query::select()
+        .from(Alias::new("test_config"))
+        .columns([Alias::new("key"), Alias::new("value")])
+        .order_by(Alias::new("key"), Order::Asc)
+        .to_owned();
+
+    let rows = db.query_all(&stmt).await.unwrap();
+
+    assert_eq!(rows.len(), 2, "Expected 2 rows from seed data");
+
+    let env_val: String = rows[0].try_get("", "key").unwrap();
+    assert_eq!(env_val, "env");
+
+    let version_val: String = rows[1].try_get("", "key").unwrap();
+    assert_eq!(version_val, "version");
+
+    // Cleanup
+    let result = DmlTestMigrator::reset(&db_path).await;
+    assert!(result.is_ok(), "Reset failed: {:?}", result.err());
+}
