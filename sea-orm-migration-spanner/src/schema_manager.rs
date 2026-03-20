@@ -93,6 +93,11 @@ fn mysql_ddl_to_spanner(mysql_ddl: &str) -> String {
             let value = &caps[1];
             if value.eq_ignore_ascii_case("CURRENT_TIMESTAMP") {
                 " DEFAULT (CURRENT_TIMESTAMP())".to_string()
+            } else if value.starts_with('\'') {
+                // Normalize MySQL backslash escaping (\') to Spanner double-quote escaping ('')
+                let inner = &value[1..value.len() - 1];
+                let spanner_inner = inner.replace("\\'", "''");
+                format!(" DEFAULT ('{}')", spanner_inner)
             } else {
                 format!(" DEFAULT ({})", value)
             }
@@ -587,8 +592,8 @@ mod tests {
         let input = r"CREATE TABLE `t` ( `id` int NOT NULL PRIMARY KEY, `note` varchar(255) NOT NULL DEFAULT 'it\'s')";
         let result = mysql_ddl_to_spanner(input);
         assert!(
-            result.contains(r"DEFAULT ('it\'s')"),
-            "DEFAULT with escaped quote must be preserved, got: {}",
+            result.contains("DEFAULT ('it''s')"),
+            "MySQL \\' escaping must be converted to Spanner '' escaping, got: {}",
             result
         );
     }
