@@ -15,5 +15,5 @@ check:
 	cd sea-orm-migration-spanner && cargo check
 
 test:
-	cargo test --all-features
-	cd sea-orm-migration-spanner && cargo test --all-features
+	SPANNER_EMULATOR_HOST=localhost:9010 cargo test --all-features
+	cd sea-orm-migration-spanner && SPANNER_EMULATOR_HOST=localhost:9010 cargo test --all-features
