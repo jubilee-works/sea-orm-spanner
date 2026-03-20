@@ -223,10 +223,8 @@ async fn test_migration_dml_execute_unprepared() {
 
     let db_path = database_path();
 
-    DmlTestMigrator::fresh(&db_path).await.ok();
-
-    let result = DmlTestMigrator::up(&db_path, None).await;
-    assert!(result.is_ok(), "Migration up failed: {:?}", result.err());
+    let result = DmlTestMigrator::fresh(&db_path).await;
+    assert!(result.is_ok(), "Fresh migration failed: {:?}", result.err());
 
     // Verify data was inserted by the migration
     let manager = SchemaManager::new(&db_path).await.unwrap();
