@@ -32,7 +32,9 @@ static RE_ENGINE: LazyLock<Regex> = regex!(r"(?i)\s*ENGINE\s*=\s*\w+");
 static RE_CHARSET: LazyLock<Regex> = regex!(r"(?i)\s*(DEFAULT\s+)?CHARSET\s*=\s*\w+");
 static RE_CHARACTER_SET: LazyLock<Regex> = regex!(r"(?i)\s*CHARACTER\s+SET\s+\w+");
 static RE_COLLATE: LazyLock<Regex> = regex!(r"(?i)\s*COLLATE\s*=?\s*\w+");
-static RE_DEFAULT: LazyLock<Regex> = regex!(r"(?i)\s*DEFAULT\s+(?:'[^']*'|\d+|NULL|TRUE|FALSE)");
+static RE_DEFAULT: LazyLock<Regex> = regex!(
+    r"(?i)\s+DEFAULT\s+('(?:[^'\\]|\\.|'')*'|-?\d+(?:\.\d+)?|NULL|TRUE|FALSE|CURRENT_TIMESTAMP)"
+);
 static RE_UNSIGNED: LazyLock<Regex> = regex!(r"(?i)\s+UNSIGNED");
 static RE_CREATE_UNIQUE_INDEX: LazyLock<Regex> = regex!(r"(?i)^CREATE\s+UNIQUE\s+INDEX");
 static RE_UNIQUE_KEY: LazyLock<Regex> = regex!(r"(?i)\s+UNIQUE(\s+KEY)?");
@@ -74,7 +76,7 @@ static RE_TRAILING_COMMA: LazyLock<Regex> = regex!(r",\s*\)");
 /// - `JSON` → `JSON`
 /// - Removes `AUTO_INCREMENT`
 /// - Removes `ENGINE=...`, `CHARSET=...`, `COLLATE=...`
-/// - Removes `DEFAULT ...` (Spanner doesn't support DEFAULT in CREATE TABLE)
+/// - Converts `DEFAULT value` to Spanner's `DEFAULT (value)` syntax
 /// - Converts inline `PRIMARY KEY` to Spanner's trailing `PRIMARY KEY (col)` syntax
 fn mysql_ddl_to_spanner(mysql_ddl: &str) -> String {
     let mut sql = mysql_ddl.to_string();
@@ -86,7 +88,16 @@ fn mysql_ddl_to_spanner(mysql_ddl: &str) -> String {
     sql = RE_CHARSET.replace_all(&sql, "").to_string();
     sql = RE_CHARACTER_SET.replace_all(&sql, "").to_string();
     sql = RE_COLLATE.replace_all(&sql, "").to_string();
-    sql = RE_DEFAULT.replace_all(&sql, "").to_string();
+    sql = RE_DEFAULT
+        .replace_all(&sql, |caps: &regex::Captures| {
+            let value = &caps[1];
+            if value.eq_ignore_ascii_case("CURRENT_TIMESTAMP") {
+                " DEFAULT (CURRENT_TIMESTAMP())".to_string()
+            } else {
+                format!(" DEFAULT ({})", value)
+            }
+        })
+        .to_string();
     sql = RE_UNSIGNED.replace_all(&sql, "").to_string();
 
     if !RE_CREATE_UNIQUE_INDEX.is_match(&sql) {
@@ -445,6 +456,156 @@ mod tests {
         assert!(
             !result.contains("UNIQUE"),
             "inline UNIQUE must be stripped from table DDL, got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_default_string_value() {
+        let input = "CREATE TABLE `t` ( `id` int NOT NULL PRIMARY KEY, `name` varchar(255) NOT NULL DEFAULT 'hello')";
+        let result = mysql_ddl_to_spanner(input);
+        assert!(
+            result.contains("DEFAULT ('hello')"),
+            "DEFAULT 'hello' must be converted to DEFAULT ('hello'), got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_default_empty_string() {
+        let input = "CREATE TABLE `t` ( `id` int NOT NULL PRIMARY KEY, `name` varchar(255) NOT NULL DEFAULT '')";
+        let result = mysql_ddl_to_spanner(input);
+        assert!(
+            result.contains("DEFAULT ('')"),
+            "DEFAULT '' must be converted to DEFAULT (''), got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_default_integer() {
+        let input = "CREATE TABLE `t` ( `id` int NOT NULL PRIMARY KEY, `count` int NOT NULL DEFAULT 0)";
+        let result = mysql_ddl_to_spanner(input);
+        assert!(
+            result.contains("DEFAULT (0)"),
+            "DEFAULT 0 must be converted to DEFAULT (0), got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_default_negative_integer() {
+        let input = "CREATE TABLE `t` ( `id` int NOT NULL PRIMARY KEY, `offset` int NOT NULL DEFAULT -1)";
+        let result = mysql_ddl_to_spanner(input);
+        assert!(
+            result.contains("DEFAULT (-1)"),
+            "DEFAULT -1 must be converted to DEFAULT (-1), got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_default_float() {
+        let input = "CREATE TABLE `t` ( `id` int NOT NULL PRIMARY KEY, `rate` double NOT NULL DEFAULT 3.14)";
+        let result = mysql_ddl_to_spanner(input);
+        assert!(
+            result.contains("DEFAULT (3.14)"),
+            "DEFAULT 3.14 must be converted to DEFAULT (3.14), got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_default_null() {
+        let input = "CREATE TABLE `t` ( `id` int NOT NULL PRIMARY KEY, `name` varchar(255) DEFAULT NULL)";
+        let result = mysql_ddl_to_spanner(input);
+        assert!(
+            result.contains("DEFAULT (NULL)"),
+            "DEFAULT NULL must be converted to DEFAULT (NULL), got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_default_true() {
+        let input = "CREATE TABLE `t` ( `id` int NOT NULL PRIMARY KEY, `active` boolean NOT NULL DEFAULT TRUE)";
+        let result = mysql_ddl_to_spanner(input);
+        assert!(
+            result.contains("DEFAULT (TRUE)"),
+            "DEFAULT TRUE must be converted to DEFAULT (TRUE), got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_default_false() {
+        let input = "CREATE TABLE `t` ( `id` int NOT NULL PRIMARY KEY, `deleted` boolean NOT NULL DEFAULT FALSE)";
+        let result = mysql_ddl_to_spanner(input);
+        assert!(
+            result.contains("DEFAULT (FALSE)"),
+            "DEFAULT FALSE must be converted to DEFAULT (FALSE), got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_default_current_timestamp() {
+        let input = "CREATE TABLE `t` ( `id` int NOT NULL PRIMARY KEY, `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP)";
+        let result = mysql_ddl_to_spanner(input);
+        assert!(
+            result.contains("DEFAULT (CURRENT_TIMESTAMP())"),
+            "DEFAULT CURRENT_TIMESTAMP must be converted to DEFAULT (CURRENT_TIMESTAMP()), got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_default_multiple_columns() {
+        let input = "CREATE TABLE `t` ( `id` int NOT NULL PRIMARY KEY, `name` varchar(255) NOT NULL DEFAULT 'unknown', `count` int NOT NULL DEFAULT 0, `active` boolean NOT NULL DEFAULT TRUE)";
+        let result = mysql_ddl_to_spanner(input);
+        assert!(result.contains("DEFAULT ('unknown')"), "got: {}", result);
+        assert!(result.contains("DEFAULT (0)"), "got: {}", result);
+        assert!(result.contains("DEFAULT (TRUE)"), "got: {}", result);
+    }
+
+    #[test]
+    fn test_default_charset_not_affected() {
+        let input = "CREATE TABLE `t` ( `id` int NOT NULL PRIMARY KEY, `name` varchar(255) NOT NULL) DEFAULT CHARSET=utf8mb4";
+        let result = mysql_ddl_to_spanner(input);
+        assert!(
+            !result.contains("CHARSET"),
+            "DEFAULT CHARSET must still be removed, got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_default_with_escaped_quote() {
+        let input = r"CREATE TABLE `t` ( `id` int NOT NULL PRIMARY KEY, `note` varchar(255) NOT NULL DEFAULT 'it\'s')";
+        let result = mysql_ddl_to_spanner(input);
+        assert!(
+            result.contains(r"DEFAULT ('it\'s')"),
+            "DEFAULT with escaped quote must be preserved, got: {}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_default_case_insensitive() {
+        let input = "CREATE TABLE `t` ( `id` int NOT NULL PRIMARY KEY, `v1` varchar(255) default 'a', `v2` int default null, `v3` boolean default true)";
+        let result = mysql_ddl_to_spanner(input);
+        assert!(result.contains("DEFAULT ('a')") || result.contains("default ('a')"), "got: {}", result);
+        assert!(result.contains("DEFAULT (null)") || result.contains("DEFAULT (NULL)"), "got: {}", result);
+        assert!(result.contains("DEFAULT (true)") || result.contains("DEFAULT (TRUE)"), "got: {}", result);
+    }
+
+    #[test]
+    fn test_alter_table_add_column_with_default() {
+        let input = "ALTER TABLE `t` ADD COLUMN `name` varchar(255) NOT NULL DEFAULT 'guest'";
+        let result = mysql_ddl_to_spanner(input);
+        assert!(
+            result.contains("DEFAULT ('guest')"),
+            "ALTER TABLE ADD COLUMN DEFAULT must be converted, got: {}",
             result
         );
     }
