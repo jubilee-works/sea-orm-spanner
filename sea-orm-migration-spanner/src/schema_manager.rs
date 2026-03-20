@@ -484,7 +484,8 @@ mod tests {
 
     #[test]
     fn test_default_integer() {
-        let input = "CREATE TABLE `t` ( `id` int NOT NULL PRIMARY KEY, `count` int NOT NULL DEFAULT 0)";
+        let input =
+            "CREATE TABLE `t` ( `id` int NOT NULL PRIMARY KEY, `count` int NOT NULL DEFAULT 0)";
         let result = mysql_ddl_to_spanner(input);
         assert!(
             result.contains("DEFAULT (0)"),
@@ -495,7 +496,8 @@ mod tests {
 
     #[test]
     fn test_default_negative_integer() {
-        let input = "CREATE TABLE `t` ( `id` int NOT NULL PRIMARY KEY, `offset` int NOT NULL DEFAULT -1)";
+        let input =
+            "CREATE TABLE `t` ( `id` int NOT NULL PRIMARY KEY, `offset` int NOT NULL DEFAULT -1)";
         let result = mysql_ddl_to_spanner(input);
         assert!(
             result.contains("DEFAULT (-1)"),
@@ -517,7 +519,8 @@ mod tests {
 
     #[test]
     fn test_default_null() {
-        let input = "CREATE TABLE `t` ( `id` int NOT NULL PRIMARY KEY, `name` varchar(255) DEFAULT NULL)";
+        let input =
+            "CREATE TABLE `t` ( `id` int NOT NULL PRIMARY KEY, `name` varchar(255) DEFAULT NULL)";
         let result = mysql_ddl_to_spanner(input);
         assert!(
             result.contains("DEFAULT (NULL)"),
@@ -594,9 +597,21 @@ mod tests {
     fn test_default_case_insensitive() {
         let input = "CREATE TABLE `t` ( `id` int NOT NULL PRIMARY KEY, `v1` varchar(255) default 'a', `v2` int default null, `v3` boolean default true)";
         let result = mysql_ddl_to_spanner(input);
-        assert!(result.contains("DEFAULT ('a')") || result.contains("default ('a')"), "got: {}", result);
-        assert!(result.contains("DEFAULT (null)") || result.contains("DEFAULT (NULL)"), "got: {}", result);
-        assert!(result.contains("DEFAULT (true)") || result.contains("DEFAULT (TRUE)"), "got: {}", result);
+        assert!(
+            result.contains("DEFAULT ('a')") || result.contains("default ('a')"),
+            "got: {}",
+            result
+        );
+        assert!(
+            result.contains("DEFAULT (null)") || result.contains("DEFAULT (NULL)"),
+            "got: {}",
+            result
+        );
+        assert!(
+            result.contains("DEFAULT (true)") || result.contains("DEFAULT (TRUE)"),
+            "got: {}",
+            result
+        );
     }
 
     #[test]
