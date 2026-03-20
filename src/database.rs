@@ -272,6 +272,7 @@ pub async fn ensure_instance(
 ) -> Result<bool, DbErr> {
     let admin_config = AdminClientConfig {
         environment: Environment::Emulator(emulator_host.to_string()),
+        ..Default::default()
     };
     let admin_client = AdminClient::new(admin_config)
         .await
@@ -335,6 +336,7 @@ pub async fn ensure_database(
 ) -> Result<bool, DbErr> {
     let admin_config = AdminClientConfig {
         environment: Environment::Emulator(emulator_host.to_string()),
+        ..Default::default()
     };
     let admin_client = AdminClient::new(admin_config)
         .await
