@@ -1,9 +1,12 @@
-use crate::schema_manager::SchemaManager;
-use sea_orm::sea_query::{Alias, Order, Query};
-use sea_orm::{ActiveValue, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, QueryFilter};
-use std::collections::HashSet;
-use std::time::SystemTime;
-use tracing::info;
+use {
+    crate::schema_manager::SchemaManager,
+    sea_orm::{
+        sea_query::{Alias, Order, Query},
+        ActiveValue, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, QueryFilter,
+    },
+    std::{collections::HashSet, time::SystemTime},
+    tracing::info,
+};
 
 mod seaql_migrations {
     use sea_orm::entity::prelude::*;

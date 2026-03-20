@@ -1,5 +1,4 @@
-use sea_orm_migration_spanner::prelude::*;
-use serial_test::serial;
+use {sea_orm_migration_spanner::prelude::*, serial_test::serial};
 
 struct M20220101CreateUsers;
 
@@ -81,10 +80,13 @@ fn database_path() -> String {
 }
 
 async fn setup_test_database() {
-    use gcloud_googleapis::spanner::admin::database::v1::{CreateDatabaseRequest, DatabaseDialect};
-    use gcloud_googleapis::spanner::admin::instance::v1::{CreateInstanceRequest, Instance};
-    use gcloud_spanner::admin::client::Client as AdminClient;
-    use gcloud_spanner::admin::AdminClientConfig;
+    use {
+        gcloud_googleapis::spanner::admin::{
+            database::v1::{CreateDatabaseRequest, DatabaseDialect},
+            instance::v1::{CreateInstanceRequest, Instance},
+        },
+        gcloud_spanner::admin::{client::Client as AdminClient, AdminClientConfig},
+    };
 
     if std::env::var("SPANNER_EMULATOR_HOST").is_err() {
         panic!("SPANNER_EMULATOR_HOST not set");

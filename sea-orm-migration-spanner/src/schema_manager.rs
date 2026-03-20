@@ -1,19 +1,23 @@
-use std::{sync::LazyLock, time::Duration};
-
-use gcloud_gax::conn::{ConnectionManager, ConnectionOptions};
-use gcloud_googleapis::spanner::admin::database::v1::UpdateDatabaseDdlRequest;
-use gcloud_longrunning::autogen::operations_client::OperationsClient;
-use gcloud_spanner::admin::database::database_admin_client::DatabaseAdminClient;
-use gcloud_spanner::admin::AdminClientConfig;
-use gcloud_spanner::apiv1::conn_pool::{AUDIENCE, SPANNER};
-use regex::Regex;
-use sea_orm::sea_query::{
-    backend::MysqlQueryBuilder, IndexCreateStatement, IndexDropStatement, TableAlterStatement,
-    TableCreateStatement, TableDropStatement,
+use {
+    gcloud_gax::conn::{ConnectionManager, ConnectionOptions},
+    gcloud_googleapis::spanner::admin::database::v1::UpdateDatabaseDdlRequest,
+    gcloud_longrunning::autogen::operations_client::OperationsClient,
+    gcloud_spanner::{
+        admin::{database::database_admin_client::DatabaseAdminClient, AdminClientConfig},
+        apiv1::conn_pool::{AUDIENCE, SPANNER},
+    },
+    regex::Regex,
+    sea_orm::{
+        sea_query::{
+            backend::MysqlQueryBuilder, IndexCreateStatement, IndexDropStatement,
+            TableAlterStatement, TableCreateStatement, TableDropStatement,
+        },
+        ConnectionTrait, DatabaseConnection, DbErr, ExecResult,
+    },
+    sea_orm_spanner::SpannerDatabase,
+    sea_query_spanner::{SpannerAlterTable, SpannerIndexBuilder, SpannerTableBuilder},
+    std::{sync::LazyLock, time::Duration},
 };
-use sea_orm::{ConnectionTrait, DatabaseConnection, DbErr, ExecResult};
-use sea_orm_spanner::SpannerDatabase;
-use sea_query_spanner::{SpannerAlterTable, SpannerIndexBuilder, SpannerTableBuilder};
 
 macro_rules! regex {
     ($pattern:expr) => {

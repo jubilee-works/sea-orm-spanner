@@ -50,10 +50,14 @@ jobs:
           done
 
       - name: Build
-        run: cargo build --all-features
+        run: |
+          cargo build --all-features
+          cd sea-orm-migration-spanner && cargo build --all-features
 
       - name: Run tests
-        run: cargo test --all-features
+        run: |
+          cargo test --all-features
+          cd sea-orm-migration-spanner && cargo test --all-features
 
   lint:
     runs-on: ubuntu-latest
