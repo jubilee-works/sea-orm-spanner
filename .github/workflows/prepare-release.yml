@@ -57,7 +57,7 @@ jobs:
         with:
           branch: release/v${{ steps.version.outputs.version }}
           commit-message: "chore: bump version to ${{ steps.version.outputs.version }}"
-          title: "chore: release v${{ steps.version.outputs.version }}"
+          title: "🚀 Release v${{ steps.version.outputs.version }}"
           body: |
             ## Release v${{ steps.version.outputs.version }}
 
