@@ -1,17 +1,13 @@
-use crate::error::SpannerDbErr;
-use crate::executor::SpannerExecutor;
-use crate::query_result::SpannerQueryResult;
-use gcloud_gax::cancel::CancellationToken;
-use gcloud_gax::grpc::Status;
-use gcloud_gax::retry::TryAs;
-use gcloud_spanner::client::Client;
-use gcloud_spanner::session::SessionError;
-use gcloud_spanner::transaction_rw::ReadWriteTransaction;
-use gcloud_spanner::transaction_ro::ReadOnlyTransaction;
-use sea_orm::{DbBackend, DbErr, Statement};
-use std::future::Future;
-use std::pin::Pin;
-use std::sync::Arc;
+use {
+    crate::{error::SpannerDbErr, executor::SpannerExecutor, query_result::SpannerQueryResult},
+    gcloud_gax::{grpc::Status, retry::TryAs},
+    gcloud_spanner::{
+        client::Client, session::SessionError, transaction_ro::ReadOnlyTransaction,
+        transaction_rw::ReadWriteTransaction,
+    },
+    sea_orm::{DbBackend, DbErr, Statement},
+    std::{future::Future, pin::Pin, sync::Arc},
+};
 
 #[derive(Clone)]
 pub struct SpannerConnection {
@@ -29,8 +25,12 @@ impl SpannerConnection {
         &self.client
     }
 
-    pub async fn close(&self) {
-        self.client.close().await;
+    pub async fn close(self) {
+        Arc::try_unwrap(self.client)
+            .ok()
+            .expect("Cannot close: other references to Client exist")
+            .close()
+            .await;
     }
 
     pub fn get_database_backend(&self) -> DbBackend {
@@ -63,15 +63,14 @@ impl SpannerConnection {
         E: TryAs<Status> + From<SessionError> + From<Status> + ToString,
         F: for<'tx> Fn(
             &'tx mut ReadWriteTransaction,
-            Option<CancellationToken>,
         ) -> Pin<Box<dyn Future<Output = Result<T, E>> + Send + 'tx>>,
         T: Send,
     {
         let result = self
             .client
-            .read_write_transaction(|tx, cancel| callback(tx, cancel))
+            .read_write_transaction(|tx| callback(tx))
             .await
-            .map_err(|e| DbErr::Custom(e.to_string()))?;
+            .map_err(|e: E| DbErr::Custom(e.to_string()))?;
 
         Ok(result.1)
     }
@@ -79,8 +78,10 @@ impl SpannerConnection {
     pub async fn read_only_transaction<F, T>(&self, callback: F) -> Result<T, DbErr>
     where
         F: for<'tx> FnOnce(
-            &'tx mut ReadOnlyTransaction,
-        ) -> Pin<Box<dyn Future<Output = Result<T, DbErr>> + Send + 'tx>> + Send,
+                &'tx mut ReadOnlyTransaction,
+            )
+                -> Pin<Box<dyn Future<Output = Result<T, DbErr>> + Send + 'tx>>
+            + Send,
         T: Send,
     {
         let mut tx = self

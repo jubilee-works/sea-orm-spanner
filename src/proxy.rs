@@ -73,7 +73,33 @@ impl SpannerProxy {
     }
 
     fn rewrite_mysql_quotes(sql: &str) -> String {
-        sql.replace('`', "")
+        let mut result = String::with_capacity(sql.len());
+        let mut chars = sql.chars().peekable();
+        let mut in_string = false;
+        let mut string_char = ' ';
+
+        while let Some(c) = chars.next() {
+            if !in_string && (c == '\'' || c == '"') {
+                in_string = true;
+                string_char = c;
+                result.push(c);
+            } else if in_string && c == string_char {
+                if chars.peek() == Some(&string_char) {
+                    // Escaped quote inside string literal
+                    result.push(c);
+                    result.push(chars.next().unwrap());
+                } else {
+                    in_string = false;
+                    result.push(c);
+                }
+            } else if !in_string && c == '`' {
+                // Skip backticks outside of string literals
+            } else {
+                result.push(c);
+            }
+        }
+
+        result
     }
 
     fn bind_value(
@@ -107,7 +133,14 @@ impl SpannerProxy {
             Value::Unsigned(Some(v)) => stmt.add_param(param_name, &(*v as i64)),
             Value::Unsigned(None) => stmt.add_param(param_name, &Option::<i64>::None),
 
-            Value::BigUnsigned(Some(v)) => stmt.add_param(param_name, &(*v as i64)),
+            Value::BigUnsigned(Some(v)) => {
+                let i = i64::try_from(*v).map_err(|_| SpannerDbErr::TypeConversion {
+                    column: param_name.to_string(),
+                    expected: "i64".to_string(),
+                    got: format!("u64 value {} overflows i64", v),
+                })?;
+                stmt.add_param(param_name, &i);
+            }
             Value::BigUnsigned(None) => stmt.add_param(param_name, &Option::<i64>::None),
 
             Value::Float(Some(v)) => stmt.add_param(param_name, &(*v as f64)),
@@ -250,24 +283,34 @@ impl SpannerProxy {
             ArrayType::Bool => {
                 let arr: Vec<bool> = values
                     .iter()
-                    .filter_map(|v| match v {
-                        Value::Bool(Some(b)) => Some(*b),
-                        _ => None,
+                    .enumerate()
+                    .map(|(i, v)| match v {
+                        Value::Bool(Some(b)) => Ok(*b),
+                        _ => Err(SpannerDbErr::TypeConversion {
+                            column: param_name.to_string(),
+                            expected: "Bool".to_string(),
+                            got: format!("element [{}]: {:?}", i, v),
+                        }),
                     })
-                    .collect();
+                    .collect::<Result<Vec<_>, _>>()?;
                 stmt.add_param(param_name, &arr);
             }
             ArrayType::TinyInt | ArrayType::SmallInt | ArrayType::Int | ArrayType::BigInt => {
                 let arr: Vec<i64> = values
                     .iter()
-                    .filter_map(|v| match v {
-                        Value::TinyInt(Some(i)) => Some(*i as i64),
-                        Value::SmallInt(Some(i)) => Some(*i as i64),
-                        Value::Int(Some(i)) => Some(*i as i64),
-                        Value::BigInt(Some(i)) => Some(*i),
-                        _ => None,
+                    .enumerate()
+                    .map(|(i, v)| match v {
+                        Value::TinyInt(Some(i)) => Ok(*i as i64),
+                        Value::SmallInt(Some(i)) => Ok(*i as i64),
+                        Value::Int(Some(i)) => Ok(*i as i64),
+                        Value::BigInt(Some(i)) => Ok(*i),
+                        _ => Err(SpannerDbErr::TypeConversion {
+                            column: param_name.to_string(),
+                            expected: "Int".to_string(),
+                            got: format!("element [{}]: {:?}", i, v),
+                        }),
                     })
-                    .collect();
+                    .collect::<Result<Vec<_>, _>>()?;
                 stmt.add_param(param_name, &arr);
             }
             ArrayType::TinyUnsigned
@@ -276,46 +319,72 @@ impl SpannerProxy {
             | ArrayType::BigUnsigned => {
                 let arr: Vec<i64> = values
                     .iter()
-                    .filter_map(|v| match v {
-                        Value::TinyUnsigned(Some(i)) => Some(*i as i64),
-                        Value::SmallUnsigned(Some(i)) => Some(*i as i64),
-                        Value::Unsigned(Some(i)) => Some(*i as i64),
-                        Value::BigUnsigned(Some(i)) => Some(*i as i64),
-                        _ => None,
+                    .enumerate()
+                    .map(|(i, v)| match v {
+                        Value::TinyUnsigned(Some(val)) => Ok(*val as i64),
+                        Value::SmallUnsigned(Some(val)) => Ok(*val as i64),
+                        Value::Unsigned(Some(val)) => Ok(*val as i64),
+                        Value::BigUnsigned(Some(val)) => {
+                            i64::try_from(*val).map_err(|_| SpannerDbErr::TypeConversion {
+                                column: param_name.to_string(),
+                                expected: "i64".to_string(),
+                                got: format!("element [{}]: u64 value {} overflows i64", i, val),
+                            })
+                        }
+                        _ => Err(SpannerDbErr::TypeConversion {
+                            column: param_name.to_string(),
+                            expected: "Unsigned Int".to_string(),
+                            got: format!("element [{}]: {:?}", i, v),
+                        }),
                     })
-                    .collect();
+                    .collect::<Result<Vec<_>, _>>()?;
                 stmt.add_param(param_name, &arr);
             }
             ArrayType::Float | ArrayType::Double => {
                 let arr: Vec<f64> = values
                     .iter()
-                    .filter_map(|v| match v {
-                        Value::Float(Some(f)) => Some(*f as f64),
-                        Value::Double(Some(d)) => Some(*d),
-                        _ => None,
+                    .enumerate()
+                    .map(|(i, v)| match v {
+                        Value::Float(Some(f)) => Ok(*f as f64),
+                        Value::Double(Some(d)) => Ok(*d),
+                        _ => Err(SpannerDbErr::TypeConversion {
+                            column: param_name.to_string(),
+                            expected: "Float".to_string(),
+                            got: format!("element [{}]: {:?}", i, v),
+                        }),
                     })
-                    .collect();
+                    .collect::<Result<Vec<_>, _>>()?;
                 stmt.add_param(param_name, &arr);
             }
             ArrayType::String | ArrayType::Char => {
                 let arr: Vec<String> = values
                     .iter()
-                    .filter_map(|v| match v {
-                        Value::String(Some(s)) => Some(s.clone()),
-                        Value::Char(Some(c)) => Some(c.to_string()),
-                        _ => None,
+                    .enumerate()
+                    .map(|(i, v)| match v {
+                        Value::String(Some(s)) => Ok(s.to_string()),
+                        Value::Char(Some(c)) => Ok(c.to_string()),
+                        _ => Err(SpannerDbErr::TypeConversion {
+                            column: param_name.to_string(),
+                            expected: "String".to_string(),
+                            got: format!("element [{}]: {:?}", i, v),
+                        }),
                     })
-                    .collect();
+                    .collect::<Result<Vec<_>, _>>()?;
                 stmt.add_param(param_name, &arr);
             }
             ArrayType::Bytes => {
                 let arr: Vec<Vec<u8>> = values
                     .iter()
-                    .filter_map(|v| match v {
-                        Value::Bytes(Some(b)) => Some(b.clone()),
-                        _ => None,
+                    .enumerate()
+                    .map(|(i, v)| match v {
+                        Value::Bytes(Some(b)) => Ok(b.to_vec()),
+                        _ => Err(SpannerDbErr::TypeConversion {
+                            column: param_name.to_string(),
+                            expected: "Bytes".to_string(),
+                            got: format!("element [{}]: {:?}", i, v),
+                        }),
                     })
-                    .collect();
+                    .collect::<Result<Vec<_>, _>>()?;
                 stmt.add_param(param_name, &SpannerBytesArray(arr));
             }
             #[cfg(feature = "with-chrono")]
@@ -327,57 +396,77 @@ impl SpannerProxy {
             | ArrayType::ChronoDateTimeWithTimeZone => {
                 let arr: Vec<String> = values
                     .iter()
-                    .filter_map(|v| match v {
-                        Value::ChronoDate(Some(d)) => Some(d.format("%Y-%m-%d").to_string()),
-                        Value::ChronoTime(Some(t)) => Some(t.format("%H:%M:%S%.f").to_string()),
+                    .enumerate()
+                    .map(|(i, v)| match v {
+                        Value::ChronoDate(Some(d)) => Ok(d.format("%Y-%m-%d").to_string()),
+                        Value::ChronoTime(Some(t)) => Ok(t.format("%H:%M:%S%.f").to_string()),
                         Value::ChronoDateTime(Some(dt)) => {
-                            Some(dt.format("%Y-%m-%dT%H:%M:%S%.fZ").to_string())
+                            Ok(dt.format("%Y-%m-%dT%H:%M:%S%.fZ").to_string())
                         }
                         Value::ChronoDateTimeUtc(Some(dt)) => {
-                            Some(dt.format("%Y-%m-%dT%H:%M:%S%.fZ").to_string())
+                            Ok(dt.format("%Y-%m-%dT%H:%M:%S%.fZ").to_string())
                         }
                         Value::ChronoDateTimeLocal(Some(dt)) => {
-                            Some(dt.format("%Y-%m-%dT%H:%M:%S%.fZ").to_string())
+                            Ok(dt.format("%Y-%m-%dT%H:%M:%S%.fZ").to_string())
                         }
                         Value::ChronoDateTimeWithTimeZone(Some(dt)) => {
-                            Some(dt.format("%Y-%m-%dT%H:%M:%S%.fZ").to_string())
+                            Ok(dt.format("%Y-%m-%dT%H:%M:%S%.fZ").to_string())
                         }
-                        _ => None,
+                        _ => Err(SpannerDbErr::TypeConversion {
+                            column: param_name.to_string(),
+                            expected: "Chrono DateTime".to_string(),
+                            got: format!("element [{}]: {:?}", i, v),
+                        }),
                     })
-                    .collect();
+                    .collect::<Result<Vec<_>, _>>()?;
                 stmt.add_param(param_name, &arr);
             }
             #[cfg(feature = "with-uuid")]
             ArrayType::Uuid => {
                 let arr: Vec<String> = values
                     .iter()
-                    .filter_map(|v| match v {
-                        Value::Uuid(Some(u)) => Some(u.to_string()),
-                        _ => None,
+                    .enumerate()
+                    .map(|(i, v)| match v {
+                        Value::Uuid(Some(u)) => Ok(u.to_string()),
+                        _ => Err(SpannerDbErr::TypeConversion {
+                            column: param_name.to_string(),
+                            expected: "Uuid".to_string(),
+                            got: format!("element [{}]: {:?}", i, v),
+                        }),
                     })
-                    .collect();
+                    .collect::<Result<Vec<_>, _>>()?;
                 stmt.add_param(param_name, &arr);
             }
             #[cfg(feature = "with-json")]
             ArrayType::Json => {
                 let arr: Vec<String> = values
                     .iter()
-                    .filter_map(|v| match v {
-                        Value::Json(Some(j)) => Some(j.to_string()),
-                        _ => None,
+                    .enumerate()
+                    .map(|(i, v)| match v {
+                        Value::Json(Some(j)) => Ok(j.to_string()),
+                        _ => Err(SpannerDbErr::TypeConversion {
+                            column: param_name.to_string(),
+                            expected: "Json".to_string(),
+                            got: format!("element [{}]: {:?}", i, v),
+                        }),
                     })
-                    .collect();
+                    .collect::<Result<Vec<_>, _>>()?;
                 stmt.add_param(param_name, &arr);
             }
             #[cfg(feature = "with-rust_decimal")]
             ArrayType::Decimal => {
                 let arr: Vec<String> = values
                     .iter()
-                    .filter_map(|v| match v {
-                        Value::Decimal(Some(d)) => Some(d.to_string()),
-                        _ => None,
+                    .enumerate()
+                    .map(|(i, v)| match v {
+                        Value::Decimal(Some(d)) => Ok(d.to_string()),
+                        _ => Err(SpannerDbErr::TypeConversion {
+                            column: param_name.to_string(),
+                            expected: "Decimal".to_string(),
+                            got: format!("element [{}]: {:?}", i, v),
+                        }),
                     })
-                    .collect();
+                    .collect::<Result<Vec<_>, _>>()?;
                 stmt.add_param(param_name, &arr);
             }
             #[allow(unreachable_patterns)]
@@ -800,8 +889,7 @@ impl SpannerProxy {
                     if sql[i..].starts_with("FROM") {
                         let next_idx = i + 4;
                         if next_idx >= bytes.len()
-                            || !bytes[next_idx].is_ascii_alphanumeric()
-                            || bytes[next_idx] == b'_'
+                            || (!bytes[next_idx].is_ascii_alphanumeric() && bytes[next_idx] != b'_')
                         {
                             return Some(i);
                         }
@@ -891,15 +979,24 @@ impl ProxyDatabaseTrait for SpannerProxy {
     }
 
     async fn begin(&self) {
-        // Spanner uses callback-based transactions, handled differently
+        tracing::warn!(
+            "SpannerProxy::begin() is a no-op. Spanner uses callback-based transactions via \
+             SpannerConnection::read_write_transaction() instead of begin/commit/rollback."
+        );
     }
 
     async fn commit(&self) {
-        // Handled by transaction callback
+        tracing::warn!(
+            "SpannerProxy::commit() is a no-op. Spanner transactions are committed \
+             automatically when the callback passed to read_write_transaction() succeeds."
+        );
     }
 
     async fn rollback(&self) {
-        // Handled by transaction callback
+        tracing::warn!(
+            "SpannerProxy::rollback() is a no-op. Spanner transactions are rolled back \
+             automatically when the callback passed to read_write_transaction() returns an error."
+        );
     }
 
     async fn ping(&self) -> Result<(), DbErr> {
