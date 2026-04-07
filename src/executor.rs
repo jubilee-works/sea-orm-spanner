@@ -1,9 +1,12 @@
-use crate::error::{SpannerDbErr, SpannerTxError};
-use crate::query_result::SpannerQueryResult;
-use gcloud_gax::grpc::Status;
-use gcloud_spanner::client::Client;
-use sea_orm::{DbErr, Statement};
-use std::sync::Arc;
+use {
+    crate::{
+        error::{SpannerDbErr, SpannerTxError},
+        query_result::SpannerQueryResult,
+    },
+    gcloud_spanner::client::Client,
+    sea_orm::{DbErr, Statement},
+    std::sync::Arc,
+};
 
 pub struct SpannerExecutor {
     client: Arc<Client>,
@@ -19,16 +22,12 @@ impl SpannerExecutor {
 
         let result = self
             .client
-            .read_write_transaction(|tx, _cancel| {
+            .read_write_transaction(|tx| {
                 let stmt = spanner_stmt.clone();
-                Box::pin(async move {
-                    tx.update(stmt)
-                        .await
-                        .map_err(|e: Status| SpannerTxError::from(e))
-                })
+                Box::pin(async move { tx.update(stmt).await.map_err(SpannerTxError::from) })
             })
             .await
-            .map_err(|e| SpannerDbErr::Execution(e.to_string()))?;
+            .map_err(|e: crate::error::SpannerTxError| SpannerDbErr::Execution(e.to_string()))?;
 
         Ok(result.1)
     }

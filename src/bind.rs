@@ -1,6 +1,8 @@
-use crate::error::SpannerDbErr;
-use gcloud_spanner::statement::Statement as SpannerStatement;
-use sea_orm::{DbErr, Statement};
+use {
+    crate::error::SpannerDbErr,
+    gcloud_spanner::statement::Statement as SpannerStatement,
+    sea_orm::{DbErr, Statement},
+};
 
 /// Convert a SeaORM Statement into a Spanner Statement with bound parameters.
 pub(crate) fn convert_statement(stmt: &Statement) -> Result<SpannerStatement, DbErr> {

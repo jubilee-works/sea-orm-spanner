@@ -1,8 +1,8 @@
-use crate::error::SpannerDbErr;
-use crate::query_result::SpannerQueryResult;
-use gcloud_spanner::transaction_ro::ReadOnlyTransaction;
-use gcloud_spanner::transaction_rw::ReadWriteTransaction;
-use sea_orm::{DbErr, Statement};
+use {
+    crate::{error::SpannerDbErr, query_result::SpannerQueryResult},
+    gcloud_spanner::{transaction_ro::ReadOnlyTransaction, transaction_rw::ReadWriteTransaction},
+    sea_orm::{DbErr, Statement},
+};
 
 pub struct SpannerReadWriteTransaction<'a> {
     tx: &'a mut ReadWriteTransaction,
