@@ -46,7 +46,7 @@ pub struct Model {
     pub id: String,
     pub name: String,
     pub email: String,
-    pub created_at: DateTime,  // Use DateTime (NaiveDateTime), not DateTimeUtc
+    pub created_at: DateTimeUtc,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -72,7 +72,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         id: Set(uuid::Uuid::new_v4().to_string()),
         name: Set("Alice".to_string()),
         email: Set("alice@example.com".to_string()),
-        created_at: Set(chrono::Utc::now().naive_utc()),
+        created_at: Set(chrono::Utc::now()),
     };
     let inserted = user.insert(&db).await?;
 
@@ -233,10 +233,31 @@ manager.create_table_raw(
 
 ### Run Migrations
 
-```bash
-# Set database path
-export DATABASE_PATH="projects/my-project/instances/my-instance/databases/my-db"
+The CLI auto-loads `.env` by default. Use `--env-file` to load a different file:
 
+```bash
+# Default: loads .env
+cargo run -p migration -- up
+
+# Load a specific env file
+cargo run -p migration -- --env-file .env.stg up
+
+# Or via ENV_FILE environment variable
+ENV_FILE=.env.stg cargo run -p migration -- up
+```
+
+Example `.env` files:
+
+```bash
+# .env (local development with emulator)
+SPANNER_EMULATOR_HOST=localhost:9010
+DATABASE_URL=projects/local-project/instances/test-instance/databases/test-db
+
+# .env.stg (staging — real GCP, no emulator)
+DATABASE_URL=projects/my-project/instances/stg-instance/databases/stg-db
+```
+
+```bash
 # Check status
 cargo run -p migration -- status
 
@@ -254,11 +275,6 @@ cargo run -p migration -- reset
 
 # Reset and reapply all
 cargo run -p migration -- fresh
-```
-
-Or pass database path directly:
-```bash
-cargo run -p migration -- -d "projects/.../databases/..." up
 ```
 
 ## Testing
@@ -346,19 +362,20 @@ pub struct Model {
 
 #### TIMESTAMP Type
 
-Spanner TIMESTAMP columns must use `DateTime` (`chrono::NaiveDateTime`) in entity definitions, **not** `DateTimeUtc` (`chrono::DateTime<chrono::Utc>`).
+Spanner TIMESTAMP columns should use `DateTimeUtc` (`chrono::DateTime<chrono::Utc>`) in entity definitions. Spanner stores all timestamps in UTC, and the read path returns `DateTime<Utc>` directly.
 
 ```rust
 pub struct Model {
-    pub created_at: DateTime,           // Correct: NaiveDateTime
-    // pub created_at: DateTimeUtc,     // Wrong: will return None on read
+    pub created_at: DateTimeUtc,        // Correct: DateTime<Utc>
 }
 ```
 
-Spanner stores all timestamps in UTC. When you need timezone-aware datetime, convert after reading:
-
 ```rust
-let utc_time = model.created_at.and_utc();  // NaiveDateTime -> DateTime<Utc>
+// Insert with UTC timestamp
+let user = user::ActiveModel {
+    created_at: Set(chrono::Utc::now()),
+    ..Default::default()
+};
 ```
 
 #### BYTES vs STRING

@@ -1,6 +1,8 @@
-use gcloud_googleapis::spanner::v1::TypeCode;
-use gcloud_spanner::statement::{single_type, ToKind};
-use prost_types::value::Kind;
+use {
+    gcloud_googleapis::spanner::v1::TypeCode,
+    gcloud_spanner::statement::{single_type, ToKind},
+    prost_types::value::Kind,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SpannerUuid(pub uuid::Uuid);

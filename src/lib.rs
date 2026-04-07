@@ -10,21 +10,22 @@ mod proxy;
 #[cfg(feature = "with-uuid")]
 pub mod uuid_support;
 
-pub use array_support::*;
-pub use database::{
-    ensure_database, ensure_instance, ensure_tls, CreateOptions, DatabaseDialect, DatabasePath,
-    InstanceConfig, SpannerDatabase,
-};
-pub use error::SpannerDbErr;
-pub use gcloud_spanner::client::ClientConfig;
 #[cfg(feature = "with-json")]
 pub use json_support::{SpannerJson, SpannerOptionalJson};
 #[cfg(feature = "with-uuid")]
 pub use uuid_support::SpannerUuid;
-
-pub use sea_query_spanner::SpannerQueryBuilder;
-
-pub use sea_orm::{
-    entity::prelude::*, ActiveModelBehavior, ActiveModelTrait, ConnectionTrait, DatabaseConnection,
-    EntityTrait, IntoActiveModel, ModelTrait, QueryFilter, QueryOrder, QuerySelect, Set, Unchanged,
+pub use {
+    array_support::*,
+    database::{
+        ensure_database, ensure_instance, ensure_tls, CreateOptions, DatabaseDialect, DatabasePath,
+        InstanceConfig, SpannerDatabase,
+    },
+    error::SpannerDbErr,
+    gcloud_spanner::client::ClientConfig,
+    sea_orm::{
+        entity::prelude::*, ActiveModelBehavior, ActiveModelTrait, ConnectionTrait,
+        DatabaseConnection, EntityTrait, IntoActiveModel, ModelTrait, QueryFilter, QueryOrder,
+        QuerySelect, Set, Unchanged,
+    },
+    sea_query_spanner::SpannerQueryBuilder,
 };

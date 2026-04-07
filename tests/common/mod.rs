@@ -1,12 +1,13 @@
-use gcloud_googleapis::spanner::admin::database::v1::{
-    CreateDatabaseRequest, DatabaseDialect, UpdateDatabaseDdlRequest,
+use {
+    gcloud_googleapis::spanner::admin::{
+        database::v1::{CreateDatabaseRequest, DatabaseDialect, UpdateDatabaseDdlRequest},
+        instance::v1::{CreateInstanceRequest, Instance},
+    },
+    gcloud_spanner::admin::{client::Client as AdminClient, AdminClientConfig},
+    sea_orm::{ConnectionTrait, DatabaseConnection, Statement},
+    sea_orm_spanner::SpannerDatabase,
+    std::sync::atomic::{AtomicBool, Ordering},
 };
-use gcloud_googleapis::spanner::admin::instance::v1::{CreateInstanceRequest, Instance};
-use gcloud_spanner::admin::client::Client as AdminClient;
-use gcloud_spanner::admin::AdminClientConfig;
-use sea_orm::{ConnectionTrait, DatabaseConnection, Statement};
-use sea_orm_spanner::SpannerDatabase;
-use std::sync::atomic::{AtomicBool, Ordering};
 
 pub const PROJECT: &str = "local-project";
 pub const INSTANCE: &str = "test-instance";

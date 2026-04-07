@@ -1,15 +1,17 @@
-use crate::error::SpannerDbErr;
-use crate::proxy::SpannerProxy;
-use gcloud_gax::conn::Environment;
-use gcloud_googleapis::spanner::admin::database::v1::{
-    CreateDatabaseRequest, DatabaseDialect as GrpcDatabaseDialect,
+use {
+    crate::{error::SpannerDbErr, proxy::SpannerProxy},
+    gcloud_gax::conn::Environment,
+    gcloud_googleapis::spanner::admin::{
+        database::v1::{CreateDatabaseRequest, DatabaseDialect as GrpcDatabaseDialect},
+        instance::v1::{CreateInstanceRequest, Instance},
+    },
+    gcloud_spanner::{
+        admin::{client::Client as AdminClient, AdminClientConfig},
+        client::{Client, ClientConfig},
+    },
+    sea_orm::{Database, DatabaseConnection, DbErr},
+    std::sync::Arc,
 };
-use gcloud_googleapis::spanner::admin::instance::v1::{CreateInstanceRequest, Instance};
-use gcloud_spanner::admin::client::Client as AdminClient;
-use gcloud_spanner::admin::AdminClientConfig;
-use gcloud_spanner::client::{Client, ClientConfig};
-use sea_orm::{Database, DatabaseConnection, DbErr};
-use std::sync::Arc;
 
 /// Database dialect for Spanner
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -270,6 +272,7 @@ pub async fn ensure_instance(
 ) -> Result<bool, DbErr> {
     let admin_config = AdminClientConfig {
         environment: Environment::Emulator(emulator_host.to_string()),
+        ..Default::default()
     };
     let admin_client = AdminClient::new(admin_config)
         .await
@@ -333,6 +336,7 @@ pub async fn ensure_database(
 ) -> Result<bool, DbErr> {
     let admin_config = AdminClientConfig {
         environment: Environment::Emulator(emulator_host.to_string()),
+        ..Default::default()
     };
     let admin_client = AdminClient::new(admin_config)
         .await

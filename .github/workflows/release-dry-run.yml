@@ -1,0 +1,84 @@
+name: Release Dry Run
+
+on:
+  push:
+    branches: ["release/v*"]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  dry-run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version
+        id: version
+        run: |
+          VERSION=$(grep -m1 '^version' Cargo.toml | sed 's/version = "\(.*\)"/\1/')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "## Version: $VERSION" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Check release notes exist
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          NOTES_FILE="releases/v${VERSION}.md"
+          if [[ ! -f "$NOTES_FILE" ]]; then
+            echo "::error::Release notes not found: $NOTES_FILE"
+            exit 1
+          fi
+          echo "✅ Release notes found: $NOTES_FILE" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Check tag does not exist
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          if git ls-remote --tags origin "refs/tags/v${VERSION}" | grep -q .; then
+            echo "::error::Tag v${VERSION} already exists on remote"
+            exit 1
+          fi
+          echo "✅ Tag v${VERSION} does not exist" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Check crate versions are consistent
+        run: |
+          ROOT_VER=$(grep -m1 '^version' Cargo.toml | sed 's/version = "\(.*\)"/\1/')
+          SQS_VER=$(grep -m1 '^version' sea-query-spanner/Cargo.toml | sed 's/version = "\(.*\)"/\1/')
+          MIG_VER=$(grep -m1 '^version' sea-orm-migration-spanner/Cargo.toml | sed 's/version = "\(.*\)"/\1/')
+
+          echo "sea-orm-spanner: $ROOT_VER"
+          echo "sea-query-spanner: $SQS_VER"
+          echo "sea-orm-migration-spanner: $MIG_VER"
+
+          if [[ "$ROOT_VER" != "$SQS_VER" || "$ROOT_VER" != "$MIG_VER" ]]; then
+            echo "::error::Version mismatch: root=$ROOT_VER, sea-query-spanner=$SQS_VER, migration=$MIG_VER"
+            exit 1
+          fi
+          echo "✅ All crate versions match: $ROOT_VER" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-dry-run-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-dry-run-
+
+      - name: Dry-run publish sea-query-spanner
+        run: cargo publish -p sea-query-spanner --dry-run
+
+      - name: Dry-run publish sea-orm-spanner
+        run: cargo publish --dry-run
+        continue-on-error: true
+
+      - name: Dry-run publish sea-orm-migration-spanner
+        run: cargo publish --manifest-path sea-orm-migration-spanner/Cargo.toml --dry-run
+        continue-on-error: true

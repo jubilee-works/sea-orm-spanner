@@ -1,10 +1,12 @@
 mod common;
 mod entity;
 
-use common::setup_test_database;
-use entity::array_types;
-use sea_orm::{ActiveModelTrait, EntityTrait, Set};
-use serial_test::serial;
+use {
+    common::setup_test_database,
+    entity::array_types,
+    sea_orm::{ActiveModelTrait, EntityTrait, Set},
+    serial_test::serial,
+};
 
 mod int64_array_tests {
     use super::*;

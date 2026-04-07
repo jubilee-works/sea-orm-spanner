@@ -1,11 +1,13 @@
 mod common;
 mod entity;
 
-use common::setup_test_database;
-use entity::uuid_types;
-use sea_orm::{ActiveModelTrait, EntityTrait, Set};
-use serial_test::serial;
-use uuid::Uuid;
+use {
+    common::setup_test_database,
+    entity::uuid_types,
+    sea_orm::{ActiveModelTrait, EntityTrait, Set},
+    serial_test::serial,
+    uuid::Uuid,
+};
 
 #[tokio::test]
 #[serial]

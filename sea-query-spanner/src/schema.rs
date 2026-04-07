@@ -4,8 +4,7 @@
 //! This is separate from SeaQuery's TableBuilder because Spanner DDL
 //! has significant differences from standard SQL DDL.
 
-use crate::types::spanner_type_name;
-use sea_query::ColumnType;
+use {crate::types::spanner_type_name, sea_query::ColumnType};
 
 /// Quote an identifier if it contains special characters (like hyphens)
 /// that are not allowed in unquoted Spanner identifiers.

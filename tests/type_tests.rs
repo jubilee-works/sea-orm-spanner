@@ -1,12 +1,14 @@
 mod common;
 mod entity;
 
-use chrono::{Datelike, NaiveDate, NaiveDateTime, Utc};
-use common::setup_test_database;
-use entity::all_types;
-use sea_orm::{ActiveModelTrait, EntityTrait, Set};
-use serde_json::json;
-use serial_test::serial;
+use {
+    chrono::{Datelike, NaiveDate, Utc},
+    common::setup_test_database,
+    entity::all_types,
+    sea_orm::{ActiveModelTrait, EntityTrait, Set},
+    serde_json::json,
+    serial_test::serial,
+};
 
 fn create_test_model(id: &str) -> all_types::ActiveModel {
     all_types::ActiveModel {
@@ -17,16 +19,16 @@ fn create_test_model(id: &str) -> all_types::ActiveModel {
         int64_nullable: Set(Some(-9223372036854775808i64)),
         int32_val: Set(2147483647_i64),
         int32_nullable: Set(Some(-2147483648_i64)),
-        float64_val: Set(3.141592653589793),
+        float64_val: Set(std::f64::consts::PI),
         float64_nullable: Set(Some(-1.7976931348623157e308)),
-        float32_val: Set(3.14159f64),
+        float32_val: Set(std::f64::consts::PI),
         float32_nullable: Set(Some(-3.40282e38f64)),
         bool_val: Set(true),
         bool_nullable: Set(Some(false)),
         bytes_val: Set(vec![0x00, 0x01, 0xFF, 0xFE]),
         bytes_nullable: Set(Some(vec![0xDE, 0xAD, 0xBE, 0xEF])),
-        timestamp_val: Set(Utc::now().naive_utc()),
-        timestamp_nullable: Set(Some(Utc::now().naive_utc())),
+        timestamp_val: Set(Utc::now()),
+        timestamp_nullable: Set(Some(Utc::now())),
         date_val: Set(NaiveDate::from_ymd_opt(2026, 1, 26).unwrap()),
         date_nullable: Set(Some(NaiveDate::from_ymd_opt(2025, 12, 25).unwrap())),
         json_val: Set(json!({"key": "value", "number": 42, "nested": {"a": 1}})),
@@ -51,7 +53,7 @@ fn create_test_model_with_nulls(id: &str) -> all_types::ActiveModel {
         bool_nullable: Set(None),
         bytes_val: Set(vec![0]),
         bytes_nullable: Set(None),
-        timestamp_val: Set(Utc::now().naive_utc()),
+        timestamp_val: Set(Utc::now()),
         timestamp_nullable: Set(None),
         date_val: Set(NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()),
         date_nullable: Set(None),
@@ -477,8 +479,10 @@ mod bytes_type_tests {
 }
 
 mod timestamp_type_tests {
-    use super::*;
-    use chrono::{TimeZone, Utc};
+    use {
+        super::*,
+        chrono::{TimeZone, Utc},
+    };
 
     #[tokio::test]
     #[serial]
@@ -486,7 +490,7 @@ mod timestamp_type_tests {
         let db = setup_test_database().await;
         let id = uuid::Uuid::new_v4().to_string();
 
-        let now = Utc::now().naive_utc();
+        let now = Utc::now();
         let model = all_types::ActiveModel {
             timestamp_val: Set(now),
             timestamp_nullable: Set(Some(now)),
@@ -518,10 +522,7 @@ mod timestamp_type_tests {
         let db = setup_test_database().await;
         let id = uuid::Uuid::new_v4().to_string();
 
-        let specific_time = Utc
-            .with_ymd_and_hms(2026, 1, 31, 7, 30, 8)
-            .unwrap()
-            .naive_utc();
+        let specific_time = Utc.with_ymd_and_hms(2026, 1, 31, 7, 30, 8).unwrap();
         let model = all_types::ActiveModel {
             timestamp_val: Set(specific_time),
             timestamp_nullable: Set(Some(specific_time)),
@@ -537,9 +538,9 @@ mod timestamp_type_tests {
             .expect("Entity not found");
 
         assert!(
-            selected.timestamp_val.and_utc().year() >= 2024,
+            selected.timestamp_val.year() >= 2024,
             "BUG: timestamp_val returned wrong year {}. Expected 2026, got {:?}",
-            selected.timestamp_val.and_utc().year(),
+            selected.timestamp_val.year(),
             selected.timestamp_val
         );
 
@@ -550,9 +551,9 @@ mod timestamp_type_tests {
 
         let nullable_val = selected.timestamp_nullable.unwrap();
         assert!(
-            nullable_val.and_utc().year() >= 2024,
+            nullable_val.year() >= 2024,
             "BUG: timestamp_nullable returned wrong year {}. Expected 2026, got {:?}",
-            nullable_val.and_utc().year(),
+            nullable_val.year(),
             nullable_val
         );
 
@@ -570,10 +571,7 @@ mod timestamp_type_tests {
         let db = setup_test_database().await;
         let id = uuid::Uuid::new_v4().to_string();
 
-        let specific_time = Utc
-            .with_ymd_and_hms(2024, 6, 15, 12, 30, 45)
-            .unwrap()
-            .naive_utc();
+        let specific_time = Utc.with_ymd_and_hms(2024, 6, 15, 12, 30, 45).unwrap();
         let model = all_types::ActiveModel {
             timestamp_val: Set(specific_time),
             timestamp_nullable: Set(Some(specific_time)),
@@ -581,14 +579,20 @@ mod timestamp_type_tests {
         };
 
         let inserted = model.insert(&db).await.expect("Insert failed");
-        assert_eq!(inserted.timestamp_val.date(), specific_time.date());
+        assert_eq!(
+            inserted.timestamp_val.date_naive(),
+            specific_time.date_naive()
+        );
 
         let selected = all_types::Entity::find_by_id(&id)
             .one(&db)
             .await
             .expect("Select failed")
             .expect("Entity not found");
-        assert_eq!(selected.timestamp_val.date(), specific_time.date());
+        assert_eq!(
+            selected.timestamp_val.date_naive(),
+            specific_time.date_naive()
+        );
     }
 
     #[tokio::test]

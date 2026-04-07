@@ -1,14 +1,16 @@
 mod common;
 mod entity;
 
-use chrono::Utc;
-use common::setup_test_database;
-use entity::{category, post, product, user};
-use sea_orm::{
-    ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, ModelTrait, PaginatorTrait,
-    QueryFilter, QueryOrder, QuerySelect, Set,
+use {
+    chrono::Utc,
+    common::setup_test_database,
+    entity::{category, post, product, user},
+    sea_orm::{
+        ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, ModelTrait, PaginatorTrait,
+        QueryFilter, QueryOrder, QuerySelect, Set,
+    },
+    serial_test::serial,
 };
-use serial_test::serial;
 
 mod insert_tests {
     use super::*;
@@ -24,7 +26,7 @@ mod insert_tests {
             email: Set("alice@example.com".to_string()),
             age: Set(Some(25)),
             active: Set(true),
-            created_at: Set(Utc::now().naive_utc()),
+            created_at: Set(Utc::now()),
         };
 
         let result = new_user.insert(&db).await;
@@ -46,7 +48,7 @@ mod insert_tests {
             email: Set("bob@example.com".to_string()),
             age: Set(None),
             active: Set(false),
-            created_at: Set(Utc::now().naive_utc()),
+            created_at: Set(Utc::now()),
         };
 
         let result = new_user.insert(&db).await;
@@ -97,7 +99,7 @@ mod select_tests {
                 email: Set(email.to_string()),
                 age: Set(age),
                 active: Set(active),
-                created_at: Set(Utc::now().naive_utc()),
+                created_at: Set(Utc::now()),
             };
             u.insert(db).await.unwrap();
         }
@@ -284,7 +286,7 @@ mod update_tests {
             email: Set("original@example.com".to_string()),
             age: Set(Some(20)),
             active: Set(true),
-            created_at: Set(Utc::now().naive_utc()),
+            created_at: Set(Utc::now()),
         };
         new_user.insert(&db).await.unwrap();
 
@@ -318,7 +320,7 @@ mod update_tests {
             email: Set("original@example.com".to_string()),
             age: Set(Some(20)),
             active: Set(true),
-            created_at: Set(Utc::now().naive_utc()),
+            created_at: Set(Utc::now()),
         };
         new_user.insert(&db).await.unwrap();
 
@@ -355,7 +357,7 @@ mod update_tests {
             email: Set("test@example.com".to_string()),
             age: Set(Some(25)),
             active: Set(true),
-            created_at: Set(Utc::now().naive_utc()),
+            created_at: Set(Utc::now()),
         };
         new_user.insert(&db).await.unwrap();
 
@@ -392,7 +394,7 @@ mod delete_tests {
             email: Set("delete@example.com".to_string()),
             age: Set(None),
             active: Set(true),
-            created_at: Set(Utc::now().naive_utc()),
+            created_at: Set(Utc::now()),
         };
         new_user.insert(&db).await.unwrap();
 
@@ -449,7 +451,7 @@ mod relation_tests {
             email: Set("author@example.com".to_string()),
             age: Set(Some(30)),
             active: Set(true),
-            created_at: Set(Utc::now().naive_utc()),
+            created_at: Set(Utc::now()),
         };
         u.insert(db).await.unwrap();
 
@@ -463,7 +465,7 @@ mod relation_tests {
                 title: Set(format!("Post {}", i)),
                 content: Set(format!("Content of post {}", i)),
                 published: Set(i % 2 == 0),
-                created_at: Set(Utc::now().naive_utc()),
+                created_at: Set(Utc::now()),
             };
             p.insert(db).await.unwrap();
         }
@@ -539,8 +541,7 @@ mod pagination_tests {
 }
 
 mod aggregate_tests {
-    use super::*;
-    use sea_orm::FromQueryResult;
+    use {super::*, sea_orm::FromQueryResult};
 
     #[derive(Debug, FromQueryResult)]
     struct PostCount {
@@ -561,7 +562,7 @@ mod aggregate_tests {
                 email: Set(format!("{}@example.com", name.to_lowercase())),
                 age: Set(Some(25)),
                 active: Set(true),
-                created_at: Set(Utc::now().naive_utc()),
+                created_at: Set(Utc::now()),
             }
             .insert(db)
             .await
@@ -574,7 +575,7 @@ mod aggregate_tests {
                     title: Set(format!("{}'s Post {}", name, i)),
                     content: Set(format!("Content {}", i)),
                     published: Set(true),
-                    created_at: Set(Utc::now().naive_utc()),
+                    created_at: Set(Utc::now()),
                 }
                 .insert(db)
                 .await
@@ -735,7 +736,7 @@ mod complex_query_tests {
             .await
             .unwrap();
 
-        assert!(products.len() >= 1);
+        assert!(!products.is_empty());
     }
 
     #[tokio::test]
