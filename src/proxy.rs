@@ -819,70 +819,6 @@ impl SpannerProxy {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use {
-        super::*,
-        sea_orm::{DbBackend, Statement},
-    };
-
-    fn columns(sql: &str) -> Vec<String> {
-        let stmt = Statement::from_string(DbBackend::MySql, sql);
-        SpannerProxy::extract_column_names_from_statement(&stmt)
-    }
-
-    #[test]
-    fn find_top_level_from_skips_columns_ending_in_from() {
-        // The `_from` suffix must not be mistaken for the FROM clause.
-        let sql = "SELECT id, rotated_from FROM keys".to_uppercase();
-        let pos = SpannerProxy::find_top_level_from(&sql, 6).unwrap();
-        assert_eq!(&sql[pos..pos + 4], "FROM");
-        // The match is the standalone keyword, not the one inside `rotated_from`.
-        assert_eq!(pos, sql.find(" FROM ").unwrap() + 1);
-    }
-
-    #[test]
-    fn find_top_level_from_skips_columns_starting_with_from() {
-        let sql = "SELECT from_date, x FROM events".to_uppercase();
-        let pos = SpannerProxy::find_top_level_from(&sql, 6).unwrap();
-        assert_eq!(pos, sql.find(" FROM ").unwrap() + 1);
-    }
-
-    #[test]
-    fn extract_columns_handles_from_in_identifier() {
-        // Regression: a column named `rotated_from` previously truncated the
-        // column list at the embedded "from".
-        assert_eq!(
-            columns("SELECT id, rotated_from FROM keys"),
-            vec!["id".to_string(), "rotated_from".to_string()]
-        );
-    }
-
-    #[test]
-    fn extract_columns_basic_and_aliases() {
-        assert_eq!(
-            columns("SELECT id, name FROM users"),
-            vec!["id".to_string(), "name".to_string()]
-        );
-        assert_eq!(
-            columns("SELECT id, COUNT(*) AS total FROM users"),
-            vec!["id".to_string(), "total".to_string()]
-        );
-        assert_eq!(
-            columns("SELECT `users`.`id`, `users`.`rotated_from` FROM `users`"),
-            vec!["id".to_string(), "rotated_from".to_string()]
-        );
-    }
-
-    #[test]
-    fn extract_columns_ignores_from_inside_subquery() {
-        assert_eq!(
-            columns("SELECT id, (SELECT 1 FROM dual) AS one FROM users"),
-            vec!["id".to_string(), "one".to_string()]
-        );
-    }
-}
-
 #[async_trait]
 impl ProxyDatabaseTrait for SpannerProxy {
     async fn query(&self, statement: Statement) -> Result<Vec<ProxyRow>, DbErr> {
@@ -983,5 +919,69 @@ impl ProxyDatabaseTrait for SpannerProxy {
             .map_err(|e| SpannerDbErr::Connection(e.to_string()))?;
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use {
+        super::*,
+        sea_orm::{DbBackend, Statement},
+    };
+
+    fn columns(sql: &str) -> Vec<String> {
+        let stmt = Statement::from_string(DbBackend::MySql, sql);
+        SpannerProxy::extract_column_names_from_statement(&stmt)
+    }
+
+    #[test]
+    fn find_top_level_from_skips_columns_ending_in_from() {
+        // The `_from` suffix must not be mistaken for the FROM clause.
+        let sql = "SELECT id, rotated_from FROM keys".to_uppercase();
+        let pos = SpannerProxy::find_top_level_from(&sql, 6).unwrap();
+        assert_eq!(&sql[pos..pos + 4], "FROM");
+        // The match is the standalone keyword, not the one inside `rotated_from`.
+        assert_eq!(pos, sql.find(" FROM ").unwrap() + 1);
+    }
+
+    #[test]
+    fn find_top_level_from_skips_columns_starting_with_from() {
+        let sql = "SELECT from_date, x FROM events".to_uppercase();
+        let pos = SpannerProxy::find_top_level_from(&sql, 6).unwrap();
+        assert_eq!(pos, sql.find(" FROM ").unwrap() + 1);
+    }
+
+    #[test]
+    fn extract_columns_handles_from_in_identifier() {
+        // Regression: a column named `rotated_from` previously truncated the
+        // column list at the embedded "from".
+        assert_eq!(
+            columns("SELECT id, rotated_from FROM keys"),
+            vec!["id".to_string(), "rotated_from".to_string()]
+        );
+    }
+
+    #[test]
+    fn extract_columns_basic_and_aliases() {
+        assert_eq!(
+            columns("SELECT id, name FROM users"),
+            vec!["id".to_string(), "name".to_string()]
+        );
+        assert_eq!(
+            columns("SELECT id, COUNT(*) AS total FROM users"),
+            vec!["id".to_string(), "total".to_string()]
+        );
+        assert_eq!(
+            columns("SELECT `users`.`id`, `users`.`rotated_from` FROM `users`"),
+            vec!["id".to_string(), "rotated_from".to_string()]
+        );
+    }
+
+    #[test]
+    fn extract_columns_ignores_from_inside_subquery() {
+        assert_eq!(
+            columns("SELECT id, (SELECT 1 FROM dual) AS one FROM users"),
+            vec!["id".to_string(), "one".to_string()]
+        );
     }
 }

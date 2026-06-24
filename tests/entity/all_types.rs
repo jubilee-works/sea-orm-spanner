@@ -11,8 +11,9 @@ pub struct Model {
 
     pub int64_val: i64,
     pub int64_nullable: Option<i64>,
-    pub int32_val: i64,
-    pub int32_nullable: Option<i64>,
+    // i32 over an INT64 column: exercises lenient integer read coercion.
+    pub int32_val: i32,
+    pub int32_nullable: Option<i32>,
 
     pub float64_val: f64,
     pub float64_nullable: Option<f64>,
