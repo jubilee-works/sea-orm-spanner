@@ -86,14 +86,14 @@ macro_rules! int_type_to_value {
                 // std conversion. NULL and out-of-range both map to ValueTypeErr,
                 // preserving the original strict behaviour for those cases.
                 let converted: Option<$type> = match v {
-                    Value::TinyInt(x)       => x.and_then(|n| <$type>::try_from(n).ok()),
-                    Value::SmallInt(x)      => x.and_then(|n| <$type>::try_from(n).ok()),
-                    Value::Int(x)           => x.and_then(|n| <$type>::try_from(n).ok()),
-                    Value::BigInt(x)        => x.and_then(|n| <$type>::try_from(n).ok()),
-                    Value::TinyUnsigned(x)  => x.and_then(|n| <$type>::try_from(n).ok()),
-                    Value::SmallUnsigned(x) => x.and_then(|n| <$type>::try_from(n).ok()),
-                    Value::Unsigned(x)      => x.and_then(|n| <$type>::try_from(n).ok()),
-                    Value::BigUnsigned(x)   => x.and_then(|n| <$type>::try_from(n).ok()),
+                    Value::TinyInt(x)       => x.and_then(|n| <$type as TryFrom<_>>::try_from(n).ok()),
+                    Value::SmallInt(x)      => x.and_then(|n| <$type as TryFrom<_>>::try_from(n).ok()),
+                    Value::Int(x)           => x.and_then(|n| <$type as TryFrom<_>>::try_from(n).ok()),
+                    Value::BigInt(x)        => x.and_then(|n| <$type as TryFrom<_>>::try_from(n).ok()),
+                    Value::TinyUnsigned(x)  => x.and_then(|n| <$type as TryFrom<_>>::try_from(n).ok()),
+                    Value::SmallUnsigned(x) => x.and_then(|n| <$type as TryFrom<_>>::try_from(n).ok()),
+                    Value::Unsigned(x)      => x.and_then(|n| <$type as TryFrom<_>>::try_from(n).ok()),
+                    Value::BigUnsigned(x)   => x.and_then(|n| <$type as TryFrom<_>>::try_from(n).ok()),
                     _ => return Err(ValueTypeErr),
                 };
                 converted.ok_or(ValueTypeErr)
@@ -134,13 +134,19 @@ Nothing else changes: `From`, `Nullable`, `type_name`, `array_type`, and
 binding, NULL handling, and DDL are untouched. Only the *read* (`try_from`) is
 made lenient.
 
-### Why `<$type>::try_from`
+### Why `<$type as TryFrom<_>>::try_from`
 
 The std library provides `TryFrom` between every pair of integer types, and the
 reflexive case (`i32: TryFrom<i32>`, error `Infallible`) via the blanket
-`TryFrom<U> for T where U: Into<T>`. So `<$type>::try_from(n)` compiles for every
+`TryFrom<U> for T where U: Into<T>`. So the conversion compiles for every
 source/target combination, and `.ok()` normalises the differing error types to a
 single `Option<$type>` so the match arms unify.
+
+The trait must be named explicitly (`<$type as TryFrom<_>>`): inside `value.rs`,
+`ValueType` is in scope and also has a `try_from` method, so a bare
+`<$type>::try_from(n)` is ambiguous (`error[E0034]: multiple applicable items`).
+The `as TryFrom<_>` cast disambiguates; the `_` source type is inferred from `n`.
+(Verified by compiling the patched macro against sea-query 1.0.1.)
 
 ## 4. Tests
 
