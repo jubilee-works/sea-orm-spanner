@@ -4,7 +4,7 @@ description = "Spanner SQL dialect for sea-query"
 version = "0.1.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
-rust-version = "1.75"
+rust-version = "1.94"
 repository = "https://github.com/jubilee-works/sea-orm-spanner"
 keywords = ["spanner", "sea-query", "sql", "database", "google-cloud"]
 categories = ["database"]
@@ -18,7 +18,7 @@ with-json = ["sea-query/with-json", "serde_json"]
 with-rust_decimal = ["sea-query/with-rust_decimal", "rust_decimal"]
 
 [dependencies]
-sea-query = { version = "1.0.0-rc.31", default-features = false, features = [
+sea-query = { version = "1.0", default-features = false, features = [
     "postgres-array",
 ] }
 chrono = { version = "0.4", features = ["serde"], optional = true }

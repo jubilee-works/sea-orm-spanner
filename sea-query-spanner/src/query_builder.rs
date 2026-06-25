@@ -3,7 +3,8 @@ use sea_query::{
         EscapeBuilder, OperLeftAssocDecider, PrecedenceDecider, QueryBuilder, QuotedBuilder,
         TableRefBuilder,
     },
-    BinOper, Oper, Quote, SelectInto, SimpleExpr, SqlWriter, SubQueryStatement, Value,
+    BinOper, ExplainStatement, Oper, Quote, SelectInto, SimpleExpr, SqlWriter, SubQueryStatement,
+    Value,
 };
 
 pub struct SpannerQueryBuilder;
@@ -92,6 +93,13 @@ impl QueryBuilder for SpannerQueryBuilder {
 
     fn prepare_value(&self, value: Value, sql: &mut impl SqlWriter) {
         sql.push_param(value, self as _);
+    }
+
+    fn prepare_explain_statement(&self, _explain: &ExplainStatement, _sql: &mut impl SqlWriter) {
+        // Spanner does not expose EXPLAIN through this query builder; the proxy
+        // layer builds queries directly, so this is never exercised. Fail fast
+        // instead of silently emitting empty/invalid SQL if a caller ever does.
+        unimplemented!("EXPLAIN is not supported by the Spanner query builder");
     }
 }
 

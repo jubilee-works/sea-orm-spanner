@@ -17,8 +17,8 @@ fn create_test_model(id: &str) -> all_types::ActiveModel {
         string_nullable: Set(Some("nullable string".to_string())),
         int64_val: Set(9223372036854775807i64),
         int64_nullable: Set(Some(-9223372036854775808i64)),
-        int32_val: Set(2147483647_i64),
-        int32_nullable: Set(Some(-2147483648_i64)),
+        int32_val: Set(2147483647_i32),
+        int32_nullable: Set(Some(-2147483648_i32)),
         float64_val: Set(std::f64::consts::PI),
         float64_nullable: Set(Some(-1.7976931348623157e308)),
         float32_val: Set(std::f64::consts::PI),
@@ -43,7 +43,7 @@ fn create_test_model_with_nulls(id: &str) -> all_types::ActiveModel {
         string_nullable: Set(None),
         int64_val: Set(i64::MIN),
         int64_nullable: Set(None),
-        int32_val: Set(0_i64),
+        int32_val: Set(0_i32),
         int32_nullable: Set(None),
         float64_val: Set(0.0),
         float64_nullable: Set(None),
@@ -173,22 +173,22 @@ mod integer_type_tests {
         let id = uuid::Uuid::new_v4().to_string();
 
         let model = all_types::ActiveModel {
-            int32_val: Set(i32::MAX as i64),
-            int32_nullable: Set(Some(i32::MIN as i64)),
+            int32_val: Set(i32::MAX),
+            int32_nullable: Set(Some(i32::MIN)),
             ..create_test_model(&id)
         };
 
         let inserted = model.insert(&db).await.expect("Insert failed");
-        assert_eq!(inserted.int32_val, i32::MAX as i64);
-        assert_eq!(inserted.int32_nullable, Some(i32::MIN as i64));
+        assert_eq!(inserted.int32_val, i32::MAX);
+        assert_eq!(inserted.int32_nullable, Some(i32::MIN));
 
         let selected = all_types::Entity::find_by_id(&id)
             .one(&db)
             .await
             .expect("Select failed")
             .expect("Entity not found");
-        assert_eq!(selected.int32_val, i32::MAX as i64);
-        assert_eq!(selected.int32_nullable, Some(i32::MIN as i64));
+        assert_eq!(selected.int32_val, i32::MAX);
+        assert_eq!(selected.int32_nullable, Some(i32::MIN));
     }
 
     #[tokio::test]
@@ -200,16 +200,16 @@ mod integer_type_tests {
         let model = all_types::ActiveModel {
             int64_val: Set(i64::MIN),
             int64_nullable: Set(Some(i64::MAX)),
-            int32_val: Set(-999_i64),
-            int32_nullable: Set(Some(0_i64)),
+            int32_val: Set(-999_i32),
+            int32_nullable: Set(Some(0_i32)),
             ..create_test_model(&id)
         };
 
         let inserted = model.insert(&db).await.expect("Insert failed");
         assert_eq!(inserted.int64_val, i64::MIN);
         assert_eq!(inserted.int64_nullable, Some(i64::MAX));
-        assert_eq!(inserted.int32_val, -999_i64);
-        assert_eq!(inserted.int32_nullable, Some(0_i64));
+        assert_eq!(inserted.int32_val, -999_i32);
+        assert_eq!(inserted.int32_nullable, Some(0_i32));
 
         let selected = all_types::Entity::find_by_id(&id)
             .one(&db)
@@ -218,8 +218,8 @@ mod integer_type_tests {
             .expect("Entity not found");
         assert_eq!(selected.int64_val, i64::MIN);
         assert_eq!(selected.int64_nullable, Some(i64::MAX));
-        assert_eq!(selected.int32_val, -999_i64);
-        assert_eq!(selected.int32_nullable, Some(0_i64));
+        assert_eq!(selected.int32_val, -999_i32);
+        assert_eq!(selected.int32_nullable, Some(0_i32));
     }
 
     #[tokio::test]

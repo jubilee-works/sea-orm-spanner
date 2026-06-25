@@ -16,8 +16,13 @@ path = "src/lib.rs"
 
 [dependencies]
 sea-orm-migration-spanner = { path = "../../sea-orm-migration-spanner" }
-sea-orm = { git = "https://github.com/SeaQL/sea-orm.git", tag = "2.0.0-rc.32", features = [
+sea-orm = { version = "2.0.0-rc.41", features = [
     "runtime-tokio-native-tls",
 ] }
 tokio = { version = "1", features = ["full"] }
 async-trait = "0.1"
+
+# TEMPORARY: see the note in the root Cargo.toml. Keeps this example's
+# sea-query in sync with the patched lenient-integer build of the library.
+[patch.crates-io]
+sea-query = { git = "https://github.com/devgony/sea-query", rev = "dca2f6a79a250ed95e09bc9a595081fa9d0490f5" }

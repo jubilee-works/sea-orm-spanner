@@ -338,16 +338,29 @@ Spanner has a limited set of native types compared to other databases. This libr
 
 #### Integer Types
 
-Spanner only has `INT64`. All integer values are returned as `i64`.
-
-**Recommendation**: Use `i64` for all integer fields in your entities.
+Spanner only has `INT64`. Narrower signed integer fields (`i8`, `i16`, `i32`)
+are read back with checked coercion from the underlying `i64`, so you can map a
+column to whichever width fits your domain:
 
 ```rust
 pub struct Model {
-    pub count: i64,
-    pub user_id: i64,
+    pub user_id: i64,   // full INT64 range
+    pub age: i32,       // narrower field, read-coerced from INT64
 }
 ```
+
+A value that does not fit the declared type (e.g. an `i32` field holding a value
+outside `i32` range) is a read error rather than a silent truncation.
+
+> The coercion currently relies on a patched `sea-query`. Cargo applies
+> `[patch.crates-io]` only from the top-level workspace, so depending on
+> `sea-orm-spanner` from crates.io is not enough — add the patch to your own
+> application's `Cargo.toml` until the upstream change is released:
+>
+> ```toml
+> [patch.crates-io]
+> sea-query = { git = "https://github.com/devgony/sea-query", rev = "dca2f6a79a250ed95e09bc9a595081fa9d0490f5" }
+> ```
 
 #### Float Types
 
