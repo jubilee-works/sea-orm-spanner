@@ -97,7 +97,9 @@ impl QueryBuilder for SpannerQueryBuilder {
 
     fn prepare_explain_statement(&self, _explain: &ExplainStatement, _sql: &mut impl SqlWriter) {
         // Spanner does not expose EXPLAIN through this query builder; the proxy
-        // layer builds queries directly, so this is never exercised.
+        // layer builds queries directly, so this is never exercised. Fail fast
+        // instead of silently emitting empty/invalid SQL if a caller ever does.
+        unimplemented!("EXPLAIN is not supported by the Spanner query builder");
     }
 }
 
