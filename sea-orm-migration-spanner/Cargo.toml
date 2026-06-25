@@ -50,4 +50,4 @@ serial_test = "3.3"
 # TEMPORARY: see the note in ../Cargo.toml. Keeps this separate workspace on the
 # same lenient sea-query as the main crate until the upstream change is released.
 [patch.crates-io]
-sea-query = { git = "https://github.com/devgony/sea-query", branch = "lenient-integer-value-type" }
+sea-query = { git = "https://github.com/devgony/sea-query", rev = "dca2f6a79a250ed95e09bc9a595081fa9d0490f5" }

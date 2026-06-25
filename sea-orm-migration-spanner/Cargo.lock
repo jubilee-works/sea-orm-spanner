@@ -2792,7 +2792,7 @@ dependencies = [
 [[package]]
 name = "sea-query"
 version = "1.0.1"
-source = "git+https://github.com/devgony/sea-query?branch=lenient-integer-value-type#dca2f6a79a250ed95e09bc9a595081fa9d0490f5"
+source = "git+https://github.com/devgony/sea-query?rev=dca2f6a79a250ed95e09bc9a595081fa9d0490f5#dca2f6a79a250ed95e09bc9a595081fa9d0490f5"
 dependencies = [
  "chrono",
  "ordered-float",
@@ -2806,7 +2806,7 @@ dependencies = [
 [[package]]
 name = "sea-query-derive"
 version = "1.0.0"
-source = "git+https://github.com/devgony/sea-query?branch=lenient-integer-value-type#dca2f6a79a250ed95e09bc9a595081fa9d0490f5"
+source = "git+https://github.com/devgony/sea-query?rev=dca2f6a79a250ed95e09bc9a595081fa9d0490f5#dca2f6a79a250ed95e09bc9a595081fa9d0490f5"
 dependencies = [
  "darling",
  "heck 0.4.1",
