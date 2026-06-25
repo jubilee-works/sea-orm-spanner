@@ -23,4 +23,4 @@ chrono = "0.4"
 # TEMPORARY: see the note in the root Cargo.toml. Keeps this example's
 # sea-query in sync with the patched lenient-integer build of the library.
 [patch.crates-io]
-sea-query = { git = "https://github.com/devgony/sea-query", branch = "lenient-integer-value-type" }
+sea-query = { git = "https://github.com/devgony/sea-query", rev = "dca2f6a79a250ed95e09bc9a595081fa9d0490f5" }
