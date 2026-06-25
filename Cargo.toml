@@ -112,7 +112,9 @@ serial_test = "3.3.1"
 # TEMPORARY: lenient integer ValueType coercion so narrower integer fields
 # (i8/i16/i32/u*) can be read from Spanner INT64 columns. Tracks the upstream
 # PR https://github.com/SeaQL/sea-query/pull (branch lenient-integer-value-type).
-# Remove this patch once the change is released in a sea-query 1.0.x that
-# sea-orm's `~1.0.0` requirement resolves to, then `cargo update -p sea-query`.
+# Pinned to a specific rev for reproducible builds; bump it intentionally when
+# the branch advances. Remove this patch once the change is released in a
+# sea-query 1.0.x that sea-orm's `~1.0.0` requirement resolves to, then
+# `cargo update -p sea-query`.
 [patch.crates-io]
-sea-query = { git = "https://github.com/devgony/sea-query", branch = "lenient-integer-value-type" }
+sea-query = { git = "https://github.com/devgony/sea-query", rev = "dca2f6a79a250ed95e09bc9a595081fa9d0490f5" }
