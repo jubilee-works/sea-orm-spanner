@@ -1,0 +1,23 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests"
+  ],
+  "minimumReleaseAge": "7 days",
+  "packageRules": [
+    {
+      "description": "Record the most specific upstream version in the comment next to each pinned SHA. Equivalent to helpers:pinGitHubActionDigestsToSemver, but with a looser extractVersion so that actions publishing only a major tag (e.g. v21) are still tracked.",
+      "matchManagers": ["github-actions"],
+      "matchDepTypes": ["action"],
+      "extractVersion": "^(?<version>v?\\d+(\\.\\d+){0,2})$",
+      "versioning": "regex:^v?(?<major>\\d+)(\\.(?<minor>\\d+))?(\\.(?<patch>\\d+))?$"
+    },
+    {
+      "description": "pinDigest (the initial SHA pin) stays pending forever due to a Renovate bug with stability days, so create it immediately.",
+      "matchDepTypes": ["action"],
+      "matchUpdateTypes": ["pinDigest"],
+      "minimumReleaseAge": null
+    }
+  ]
+}
