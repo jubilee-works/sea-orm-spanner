@@ -796,15 +796,13 @@ impl SpannerProxy {
             match bytes[i] {
                 b'(' => paren_depth += 1,
                 b')' => paren_depth = paren_depth.saturating_sub(1),
-                b'F' if paren_depth == 0 => {
-                    if sql[i..].starts_with("FROM") {
-                        let next_idx = i + 4;
-                        if next_idx >= bytes.len()
-                            || !bytes[next_idx].is_ascii_alphanumeric()
-                            || bytes[next_idx] == b'_'
-                        {
-                            return Some(i);
-                        }
+                b'F' if paren_depth == 0 && sql[i..].starts_with("FROM") => {
+                    let next_idx = i + 4;
+                    if next_idx >= bytes.len()
+                        || !bytes[next_idx].is_ascii_alphanumeric()
+                        || bytes[next_idx] == b'_'
+                    {
+                        return Some(i);
                     }
                 }
                 _ => {}

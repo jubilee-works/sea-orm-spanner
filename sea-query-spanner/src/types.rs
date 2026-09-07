@@ -31,7 +31,7 @@ pub fn spanner_type_name(col_type: &ColumnType) -> String {
         ColumnType::Array(inner) => format!("ARRAY<{}>", spanner_type_name(inner)),
         ColumnType::Cidr | ColumnType::Inet | ColumnType::MacAddr => "STRING(MAX)".to_string(),
         ColumnType::LTree => "STRING(MAX)".to_string(),
-        ColumnType::Enum { name: _, .. } => "STRING(MAX)".to_string(),
+        ColumnType::Enum { .. } => "STRING(MAX)".to_string(),
         ColumnType::Custom(name) => name.to_string().to_uppercase(),
         _ => "STRING(MAX)".to_string(),
     }

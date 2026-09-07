@@ -144,7 +144,7 @@ fn mysql_ddl_to_spanner(mysql_ddl: &str) -> String {
             if let Some(pos) = sql.rfind(')') {
                 sql = format!(
                     "{}) PRIMARY KEY (`{}`)",
-                    &sql[..pos].trim_end_matches(',').trim_end(),
+                    sql[..pos].trim_end_matches(',').trim_end(),
                     col_name
                 );
             }
