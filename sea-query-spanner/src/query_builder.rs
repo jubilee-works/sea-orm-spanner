@@ -3,7 +3,8 @@ use sea_query::{
         EscapeBuilder, OperLeftAssocDecider, PrecedenceDecider, QueryBuilder, QuotedBuilder,
         TableRefBuilder,
     },
-    BinOper, Oper, Quote, SelectInto, SimpleExpr, SqlWriter, SubQueryStatement, Value,
+    BinOper, ExplainStatement, Oper, Quote, SelectInto, SimpleExpr, SqlWriter, SubQueryStatement,
+    Value,
 };
 
 pub struct SpannerQueryBuilder;
@@ -89,6 +90,14 @@ impl QueryBuilder for SpannerQueryBuilder {
     }
 
     fn prepare_select_into(&self, _: &SelectInto, _: &mut impl SqlWriter) {}
+
+    /// Spanner has no `EXPLAIN` statement: query plans are obtained through
+    /// `ExecuteSql` with `QueryMode::PLAN` / `QueryMode::PROFILE`. sea-query keeps
+    /// the explained statement private to its crate, so only the keyword can be
+    /// emitted here; Spanner rejects it with a syntax error at execution time.
+    fn prepare_explain_statement(&self, _: &ExplainStatement, sql: &mut impl SqlWriter) {
+        sql.write_str("EXPLAIN").unwrap();
+    }
 
     fn prepare_value(&self, value: Value, sql: &mut impl SqlWriter) {
         sql.push_param(value, self as _);

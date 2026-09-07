@@ -11,7 +11,7 @@ Google Cloud Spanner backend for [SeaORM](https://www.sea-ql.org/SeaORM/).
 
 ## Requirements
 
-- Rust 1.75+
+- Rust 1.94+
 - Google Cloud Spanner (or emulator for local development)
 
 ## Quick Start
