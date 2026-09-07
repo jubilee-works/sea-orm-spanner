@@ -61,8 +61,8 @@ sea-orm = { version = "2.0.0-rc.37", default-features = false, features = [
 sea-query = { version = "1.0.0-rc.31", default-features = false }
 sea-query-spanner = { version = "0.1.0", path = "sea-query-spanner" }
 
-gcloud-spanner = "1.7.0"
-gcloud-gax = { version = "1.3.2", default-features = false }
+gcloud-spanner = "1.8.1"
+gcloud-gax = { version = "1.4.0", default-features = false }
 gcloud-googleapis = { version = "1.3.0", features = [
     "spanner",
 ] }
@@ -90,7 +90,7 @@ tokio-test = "0.4"
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1", features = ["v4", "serde"] }
-gcloud-spanner = "1.7.0"
+gcloud-spanner = "1.8.1"
 gcloud-googleapis = { version = "1.3.0", features = [
     "spanner",
 ] }

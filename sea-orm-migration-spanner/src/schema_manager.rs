@@ -239,6 +239,7 @@ impl SchemaManager {
         let conn_options = ConnectionOptions {
             timeout: Some(Duration::from_secs(600)),
             connect_timeout: Some(Duration::from_secs(30)),
+            ..Default::default()
         };
         let conn_pool = ConnectionManager::new(
             1,

@@ -1303,9 +1303,9 @@ dependencies = [
 
 [[package]]
 name = "gcloud-spanner"
-version = "1.8.0"
+version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cb649ff005bd20f4b87bde577380c0060b944b2ccaaebd842d9219c85051453d"
+checksum = "33dad07fbb7cc49f48b27e9842ebfd977de921cf071ba4fc42d408245b3b7779"
 dependencies = [
  "base64 0.22.1",
  "bigdecimal",
@@ -4453,7 +4453,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
