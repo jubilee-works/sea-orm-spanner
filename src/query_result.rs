@@ -1,5 +1,7 @@
-use gcloud_spanner::row::Row as SpannerRow;
-use sea_orm::{DbErr, TryGetError};
+use {
+    gcloud_spanner::row::Row as SpannerRow,
+    sea_orm::{DbErr, TryGetError},
+};
 
 pub struct SpannerQueryResult {
     row: SpannerRow,

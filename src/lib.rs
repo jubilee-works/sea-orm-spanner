@@ -1,11 +1,16 @@
 pub mod array_support;
+mod bind;
 #[cfg(feature = "with-chrono")]
 pub mod chrono_support;
+pub mod connection;
 mod database;
 mod error;
+pub mod executor;
 #[cfg(feature = "with-json")]
 pub mod json_support;
 mod proxy;
+pub mod query_result;
+pub mod transaction;
 #[cfg(feature = "with-uuid")]
 pub mod uuid_support;
 
