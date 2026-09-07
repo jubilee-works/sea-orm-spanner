@@ -24,10 +24,10 @@ sea-orm = { version = "2.0.0-rc.37", features = [
 sea-orm-migration = { version = "2.0.0-rc.37" }
 sea-orm-spanner = { version = "0.1.0", path = ".." }
 sea-query-spanner = { version = "0.1.0", path = "../sea-query-spanner" }
-gcloud-spanner = "1.7.0"
+gcloud-spanner = "1.8.1"
 gcloud-googleapis = { version = "1.3.0", features = ["spanner"] }
-gcloud-gax = "1.3.2"
-gcloud-longrunning = "1.3.1"
+gcloud-gax = "1.4.0"
+gcloud-longrunning = "1.4.0"
 async-trait = "0.1"
 tokio = { version = "1", features = ["full"] }
 rustls = { version = "0.23", features = ["aws_lc_rs"] }
@@ -42,7 +42,7 @@ default = []
 
 [dev-dependencies]
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
-gcloud-spanner = "1.7.0"
+gcloud-spanner = "1.8.1"
 gcloud-googleapis = { version = "1.3.0", features = ["spanner"] }
 async-trait = "0.1"
 serial_test = "3.3"
