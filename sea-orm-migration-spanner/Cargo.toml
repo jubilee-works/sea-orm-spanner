@@ -7,7 +7,7 @@ version = "0.1.0"
 edition = "2021"
 description = "Migration utility for SeaORM Spanner"
 license = "MIT OR Apache-2.0"
-rust-version = "1.80"
+rust-version = "1.94"
 repository = "https://github.com/jubilee-works/sea-orm-spanner"
 keywords = ["spanner", "sea-orm", "migration", "database", "google-cloud"]
 categories = ["database"]
@@ -17,11 +17,11 @@ name = "sea_orm_migration_spanner"
 path = "src/lib.rs"
 
 [dependencies]
-sea-orm = { version = "2.0.0-rc.37", features = [
+sea-orm = { version = "2.0.2", features = [
     "runtime-tokio-native-tls",
     "macros",
 ] }
-sea-orm-migration = { version = "2.0.0-rc.37" }
+sea-orm-migration = { version = "2.0.2" }
 sea-orm-spanner = { version = "0.1.0", path = ".." }
 sea-query-spanner = { version = "0.1.0", path = "../sea-query-spanner" }
 gcloud-spanner = "1.8.1"

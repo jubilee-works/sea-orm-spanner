@@ -7,7 +7,7 @@ description = "Google Cloud Spanner backend for SeaORM"
 version = "0.1.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
-rust-version = "1.75"
+rust-version = "1.94"
 repository = "https://github.com/jubilee-works/sea-orm-spanner"
 keywords = ["spanner", "sea-orm", "orm", "database", "google-cloud"]
 categories = ["database"]
@@ -55,10 +55,10 @@ runtime-async-std-native-tls = ["sea-orm/runtime-async-std-native-tls"]
 runtime-async-std-rustls = ["sea-orm/runtime-async-std-rustls"]
 
 [dependencies]
-sea-orm = { version = "2.0.0-rc.37", default-features = false, features = [
+sea-orm = { version = "2.0.2", default-features = false, features = [
     "proxy",
 ] }
-sea-query = { version = "1.0.0-rc.31", default-features = false }
+sea-query = { version = "1.0.2", default-features = false }
 sea-query-spanner = { version = "0.1.0", path = "sea-query-spanner" }
 
 gcloud-spanner = "1.8.1"
@@ -94,7 +94,7 @@ gcloud-spanner = "1.8.1"
 gcloud-googleapis = { version = "1.3.0", features = [
     "spanner",
 ] }
-sea-orm = { version = "2.0.0-rc.37", features = [
+sea-orm = { version = "2.0.2", features = [
     "proxy",
     "macros",
     "with-chrono",
